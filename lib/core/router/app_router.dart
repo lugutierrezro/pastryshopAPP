@@ -1,0 +1,64 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:pastryshop/presentation/providers/auth_provider.dart';
+import 'package:pastryshop/domain/entities/entities.dart';
+import 'package:pastryshop/presentation/screens/home/home_screen.dart';
+import 'package:pastryshop/presentation/screens/auth/login_screen.dart';
+import 'package:pastryshop/presentation/screens/auth/register_screen.dart';
+import 'package:pastryshop/presentation/screens/products/product_detail_screen.dart';
+import 'package:pastryshop/presentation/screens/cart/cart_screen.dart';
+import 'package:pastryshop/presentation/screens/cart/checkout_screen.dart';
+import 'package:pastryshop/presentation/screens/orders/order_history_screen.dart';
+import 'package:pastryshop/presentation/screens/orders/order_detail_screen.dart';
+import 'package:pastryshop/presentation/screens/profile/profile_screen.dart';
+import 'package:pastryshop/presentation/screens/admin/admin_dashboard_screen.dart';
+import 'package:pastryshop/presentation/screens/admin/admin_products_screen.dart';
+import 'package:pastryshop/presentation/screens/admin/admin_users_screen.dart';
+import 'package:pastryshop/presentation/screens/admin/admin_orders_screen.dart';
+import 'package:pastryshop/presentation/screens/admin/admin_product_form_screen.dart';
+import 'package:pastryshop/presentation/screens/employee/employee_dashboard_screen.dart';
+
+// ============================================================
+//  App Router — GoRouter with role-based redirects
+// ============================================================
+class AppRouter {
+  static GoRouter router(AuthProvider auth) => GoRouter(
+    initialLocation: '/',
+    redirect: (context, state) {
+      final loggedIn = auth.isLoggedIn;
+      final path     = state.matchedLocation;
+
+      // Admin area guard
+      if (path.startsWith('/admin') && !auth.isAdmin) return '/';
+      // Employee area guard
+      if (path.startsWith('/employee') && !(auth.isEmpleado || auth.isAdmin)) return '/';
+      // Profile/orders guard
+      if ((path.startsWith('/orders') || path.startsWith('/profile')) && !loggedIn) return '/login';
+
+      return null;
+    },
+    routes: [
+      GoRoute(path: '/',             builder: (_, __) => const HomeScreen()),
+      GoRoute(path: '/login',        builder: (_, __) => const LoginScreen()),
+      GoRoute(path: '/register',     builder: (_, __) => const RegisterScreen()),
+      GoRoute(path: '/product/:id',  builder: (_, s) => ProductDetailScreen(id: int.parse(s.pathParameters['id']!))),
+      GoRoute(path: '/cart',         builder: (_, __) => const CartScreen()),
+      GoRoute(path: '/checkout',     builder: (_, __) => const CheckoutScreen()),
+      GoRoute(path: '/orders',       builder: (_, __) => const OrderHistoryScreen()),
+      GoRoute(path: '/orders/:id',   builder: (_, s) => OrderDetailScreen(id: int.parse(s.pathParameters['id']!))),
+      GoRoute(path: '/profile',      builder: (_, __) => const ProfileScreen()),
+      // Admin
+      GoRoute(path: '/admin',          builder: (_, __) => const AdminDashboardScreen()),
+      GoRoute(path: '/admin/products', builder: (_, __) => const AdminProductsScreen()),
+      GoRoute(
+        path: '/admin/product-form',
+        builder: (_, s) => AdminProductFormScreen(product: s.extra as ProductEntity?),
+      ),
+      GoRoute(path: '/admin/users',    builder: (_, __) => const AdminUsersScreen()),
+      GoRoute(path: '/admin/orders',   builder: (_, __) => const AdminOrdersScreen()),
+      // Employee
+      GoRoute(path: '/employee', builder: (_, __) => const EmployeeDashboardScreen()),
+    ],
+  );
+}
