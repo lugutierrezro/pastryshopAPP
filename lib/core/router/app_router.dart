@@ -84,6 +84,7 @@ class AppRouter {
       ),
       GoRoute(
         path: '/admin/product-detail',
+        redirect: (_, s) => s.extra == null ? '/admin/products' : null,
         builder: (_, s) => AdminProductDetailScreen(product: s.extra as ProductEntity),
       ),
       GoRoute(path: '/admin/users',    builder: (_, __) => const AdminUsersScreen()),

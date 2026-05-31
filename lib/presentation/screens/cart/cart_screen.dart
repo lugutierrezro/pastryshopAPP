@@ -109,6 +109,13 @@ class _CartItemTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(item.nombre, style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600), maxLines: 2, overflow: TextOverflow.ellipsis),
+                if (item.opcionesPersonalizadas != null) ...[
+                  const SizedBox(height: 4),
+                  if (item.opcionesPersonalizadas!['adicionales'] != null)
+                    ...List.from(item.opcionesPersonalizadas!['adicionales']).map((ad) => Text('+ ${ad['nombre']}', style: const TextStyle(fontSize: 12, color: Colors.blueGrey))),
+                  if (item.opcionesPersonalizadas!['notas'] != null)
+                    Text('Nota: ${item.opcionesPersonalizadas!['notas']}', style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.blueGrey)),
+                ],
                 const SizedBox(height: 4),
                 Text('Subtotal: S/ ${item.subtotal.toStringAsFixed(2)}',
                   style: const TextStyle(color: AppTheme.primaryDark, fontWeight: FontWeight.bold)),

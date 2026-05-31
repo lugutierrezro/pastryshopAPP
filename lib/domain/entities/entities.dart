@@ -92,12 +92,14 @@ class ProductEntity {
   final bool destacado;
   final String categoria;
   final bool activo;
+  final List<Map<String, dynamic>> adicionales;
 
   const ProductEntity({
     required this.id, required this.categoryId, required this.nombre,
     required this.descripcion, required this.precio, required this.stock,
     required this.imagenUrl, required this.destacado, required this.categoria,
     this.activo = true,
+    this.adicionales = const [],
   });
 
   factory ProductEntity.fromJson(Map<String, dynamic> j) => ProductEntity(
@@ -107,6 +109,7 @@ class ProductEntity {
     imagenUrl: j['imagen_url'] ?? '', destacado: j['destacado'] == true || j['destacado'] == 1,
     categoria: j['categoria'] ?? '',
     activo: j['activo'] == true || j['activo'] == 1,
+    adicionales: (j['adicionales'] as List?)?.map((e) => e as Map<String, dynamic>).toList() ?? [],
   );
 }
 

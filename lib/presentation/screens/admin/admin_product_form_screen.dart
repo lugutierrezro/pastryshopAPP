@@ -35,6 +35,8 @@ class _AdminProductFormScreenState extends State<AdminProductFormScreen> {
   String? _selectedImageName;
   final ImagePicker _picker = ImagePicker();
 
+  List<Map<String, dynamic>> _adicionales = [];
+
   @override
   void initState() {
     super.initState();
@@ -46,6 +48,11 @@ class _AdminProductFormScreenState extends State<AdminProductFormScreen> {
     _currentImageUrl = p?.imagenUrl;
     _destacado = p?.destacado ?? false;
     _selectedCategory = p?.categoryId ?? 1;
+    
+    if (p != null && p.adicionales.isNotEmpty) {
+      // Create a deep copy to avoid modifying the entity directly before saving
+      _adicionales = p.adicionales.map((e) => Map<String, dynamic>.from(e)).toList();
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (context.read<ProductProvider>().categories.isEmpty) {
@@ -108,6 +115,7 @@ class _AdminProductFormScreenState extends State<AdminProductFormScreen> {
       'imagen_url': finalImageUrl,
       'destacado': _destacado,
       'activo': true,
+      'adicionales': _adicionales.where((a) => a['nombre'] != null && a['nombre'].toString().trim().isNotEmpty).toList(),
     };
     
     bool ok = false;
@@ -232,6 +240,56 @@ class _AdminProductFormScreenState extends State<AdminProductFormScreen> {
                   activeColor: AppTheme.adminPrimary,
                   onChanged: (v) => setState(() => _destacado = v),
                 ),
+              ),
+              const SizedBox(height: 24),
+              const Text('Adicionales (Opciones Extra)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.adminPrimary)),
+              const SizedBox(height: 8),
+              ..._adicionales.asMap().entries.map((e) {
+                final idx = e.key;
+                final ad = e.value;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: TextFormField(
+                          initialValue: ad['nombre'],
+                          decoration: InputDecoration(
+                            labelText: 'Nombre (ej. Velas)',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            filled: true, fillColor: Colors.white,
+                          ),
+                          onChanged: (v) => _adicionales[idx]['nombre'] = v,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 1,
+                        child: TextFormField(
+                          initialValue: ad['precio']?.toString() ?? '0',
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: InputDecoration(
+                            labelText: 'Precio (+)',
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            filled: true, fillColor: Colors.white,
+                            prefixText: 'S/ ',
+                          ),
+                          onChanged: (v) => _adicionales[idx]['precio'] = double.tryParse(v) ?? 0.0,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        onPressed: () => setState(() => _adicionales.removeAt(idx)),
+                      )
+                    ],
+                  ),
+                );
+              }),
+              TextButton.icon(
+                onPressed: () => setState(() => _adicionales.add({'nombre': '', 'precio': 0.0})),
+                icon: const Icon(Icons.add, color: AppTheme.adminPrimary),
+                label: const Text('Agregar Adicional', style: TextStyle(color: AppTheme.adminPrimary, fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 40),
               SizedBox(

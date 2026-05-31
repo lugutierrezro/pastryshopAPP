@@ -20,6 +20,7 @@ class ProductDetailScreen extends StatefulWidget {
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   int _cantidad = 1;
   final _notesCtrl = TextEditingController();
+  final Set<int> _selectedAdicionales = {};
 
   @override
   void initState() {
@@ -36,10 +37,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   void _addToCart(product) {
-    Map<String, dynamic>? options;
+    Map<String, dynamic>? options = {};
     if (_notesCtrl.text.trim().isNotEmpty) {
-      options = {'notas': _notesCtrl.text.trim()};
+      options['notas'] = _notesCtrl.text.trim();
     }
+    if (_selectedAdicionales.isNotEmpty) {
+      options['adicionales'] = _selectedAdicionales.map((idx) => product.adicionales[idx]).toList();
+    }
+    if (options.isEmpty) options = null;
+
     context.read<CartProvider>().addItem(product.id, _cantidad, options: options);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: const Text('✅ Agregado al carrito', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -61,7 +67,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       );
     }
 
-    final double totalPrice = p.precio * _cantidad;
+    double extrasTotal = 0.0;
+    for (int idx in _selectedAdicionales) {
+      final adPrecio = (p.adicionales[idx]['precio'] ?? 0.0);
+      extrasTotal += (adPrecio is double ? adPrecio : (double.tryParse(adPrecio.toString()) ?? 0.0));
+    }
+    final double totalPrice = (p.precio + extrasTotal) * _cantidad;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -217,7 +228,37 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           const SizedBox(height: 24),
                           
                           if (p.stock > 0) ...[
-                            const Text('Opciones y Notas Especiales', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                            if (p.adicionales.isNotEmpty) ...[
+                              const Text('Adicionales', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 8),
+                              ...p.adicionales.asMap().entries.map((e) {
+                                final idx = e.key;
+                                final ad = e.value;
+                                final isSelected = _selectedAdicionales.contains(idx);
+                                final adPrecioRaw = ad['precio'] ?? 0.0;
+                                final adPrecio = adPrecioRaw is double ? adPrecioRaw : (double.tryParse(adPrecioRaw.toString()) ?? 0.0);
+                                return CheckboxListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  controlAffinity: ListTileControlAffinity.leading,
+                                  activeColor: AppTheme.primaryDark,
+                                  title: Text(ad['nombre'] ?? ''),
+                                  secondary: adPrecio > 0 ? Text('+ S/ ${adPrecio.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primaryDark)) : null,
+                                  value: isSelected,
+                                  onChanged: (val) {
+                                    setState(() {
+                                      if (val == true) {
+                                        _selectedAdicionales.add(idx);
+                                      } else {
+                                        _selectedAdicionales.remove(idx);
+                                      }
+                                    });
+                                  },
+                                );
+                              }),
+                              const SizedBox(height: 24),
+                            ],
+
+                            const Text('Notas Especiales', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 8),
                             TextField(
                               controller: _notesCtrl,
