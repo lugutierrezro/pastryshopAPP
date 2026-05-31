@@ -37,7 +37,7 @@ class CartProvider extends ChangeNotifier {
 
   Future<bool> addItem(int productId, int cantidad, {Map<String, dynamic>? options}) async {
     try {
-      final body = {
+      final Map<String, dynamic> body = {
         'product_id': productId, 
         'cantidad': cantidad,
       };
