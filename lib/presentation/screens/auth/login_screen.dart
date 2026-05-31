@@ -192,14 +192,18 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
                               // Google Auth Button
                               OutlinedButton.icon(
-                                onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Firebase no está configurado. Falta google-services.json en el proyecto. Por favor añade el archivo desde la consola de Firebase.'),
-                                      backgroundColor: Colors.orange,
-                                      duration: Duration(seconds: 4),
-                                    )
-                                  );
+                                onPressed: auth.loading ? null : () async {
+                                  final ok = await auth.signInWithGoogle();
+                                  if (ok && mounted) {
+                                    await context.read<CartProvider>().fetchCart();
+                                    if (auth.isAdmin) { context.go('/admin'); return; }
+                                    if (auth.isEmpleado) { context.go('/employee'); return; }
+                                    context.go('/');
+                                  } else if (!ok && mounted && auth.error != null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(auth.error!), backgroundColor: AppTheme.error),
+                                    );
+                                  }
                                 },
                                 icon: Container(
                                   width: 24, height: 24,

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:pastryshop/core/constants/app_constants.dart';
 import 'package:pastryshop/data/services/api_service.dart';
 import 'package:pastryshop/domain/entities/entities.dart';
@@ -25,6 +26,12 @@ class AuthProvider extends ChangeNotifier {
   bool        get isCliente  => _user?.isCliente ?? false;
 
   Future<void> init() async {
+    try {
+      await GoogleSignIn.instance.initialize();
+    } catch (e) {
+      if (kDebugMode) print('GoogleSignIn init error: $e');
+    }
+    
     final prefs = await SharedPreferences.getInstance();
     final tok   = prefs.getString(AppConstants.tokenKey);
     final usr   = prefs.getString(AppConstants.userKey);
@@ -32,6 +39,41 @@ class AuthProvider extends ChangeNotifier {
       _token = tok;
       _user  = UserEntity.fromJson(jsonDecode(usr));
       notifyListeners();
+    }
+  }
+
+  Future<bool> signInWithGoogle() async {
+    _loading = true; _error = null; notifyListeners();
+    try {
+      final account = await GoogleSignIn.instance.authenticate();
+      
+      final auth = await account.authentication;
+      final body = {
+        'token': auth.idToken ?? 'mock_token',
+        'email': account.email,
+        'nombre': account.displayName?.split(' ').first ?? 'Usuario',
+        'apellido': account.displayName?.split(' ').skip(1).join(' ') ?? '',
+        'provider_id': account.id,
+      };
+
+      final res = await ApiService.post(ApiRoutes.googleAuth, body);
+      if (res['success'] == true) {
+        _token = res['data']['token'];
+        _user  = UserEntity.fromJson(res['data']['user']);
+        await _persist();
+        return true;
+      }
+      _error = res['message'] ?? 'Error al iniciar sesión con Google';
+      return false;
+    } catch (e) {
+      if (e is GoogleSignInException && e.code == GoogleSignInExceptionCode.canceled) {
+        _error = 'Autenticación cancelada';
+      } else {
+        _error = 'Error de conexión con Google: $e';
+      }
+      return false;
+    } finally {
+      _loading = false; notifyListeners();
     }
   }
 

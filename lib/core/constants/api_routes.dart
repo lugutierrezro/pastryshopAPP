@@ -2,6 +2,7 @@ class ApiRoutes {
   // Auth
   static const String login = 'auth/login';
   static const String register = 'auth/register';
+  static const String googleAuth = 'auth/google';
   static const String me = 'auth/me';
 
   // Users

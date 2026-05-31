@@ -150,14 +150,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             const SizedBox(height: 16),
                             // Google Auth Button
                             OutlinedButton.icon(
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Firebase no está configurado. Falta google-services.json.'),
-                                    backgroundColor: Colors.orange,
-                                    duration: Duration(seconds: 4),
-                                  )
-                                );
+                              onPressed: auth.loading ? null : () async {
+                                final ok = await auth.signInWithGoogle();
+                                if (ok && mounted) {
+                                  context.go('/');
+                                } else if (!ok && mounted && auth.error != null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(auth.error!), backgroundColor: AppTheme.error),
+                                  );
+                                }
                               },
                               icon: Container(
                                 width: 24, height: 24,

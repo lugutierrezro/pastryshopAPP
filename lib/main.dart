@@ -14,8 +14,17 @@ import 'presentation/providers/notification_provider.dart';
 import 'presentation/providers/role_provider.dart';
 import 'presentation/providers/favorite_provider.dart';
 
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    if (kDebugMode) print('Firebase init error (likely missing options for web): $e');
+  }
+  
   final authProvider = AuthProvider();
   await authProvider.init(); // restore session
   runApp(PastryShopApp(authProvider: authProvider));

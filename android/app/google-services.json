@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "579240241601",
+    "project_id": "pastryshop-b460e",
+    "storage_bucket": "pastryshop-b460e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:579240241601:android:18f36d1067df82dec62740",
+        "android_client_info": {
+          "package_name": "com.pastryshop.pastryshop"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyARQun7GuUYb3V9n-luv7-JrXR5kIWOh_s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
