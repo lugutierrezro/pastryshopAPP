@@ -131,7 +131,19 @@ class _HomeScreenState extends State<HomeScreen> {
                         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
                       ),
                       child: PopupMenuButton<String>(
-                        icon: Icon(auth.isLoggedIn ? Icons.account_circle : Icons.person_outline, color: AppTheme.primaryDark),
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: CircleAvatar(
+                            radius: 14,
+                            backgroundColor: Colors.transparent,
+                            backgroundImage: auth.isLoggedIn && auth.user?.imagenUrl != null && auth.user!.imagenUrl!.isNotEmpty
+                                ? NetworkImage(auth.user!.imagenUrl!) as ImageProvider
+                                : null,
+                            child: (auth.isLoggedIn && auth.user?.imagenUrl != null && auth.user!.imagenUrl!.isNotEmpty)
+                                ? null
+                                : Icon(auth.isLoggedIn ? Icons.account_circle : Icons.person_outline, color: AppTheme.primaryDark, size: 28),
+                          ),
+                        ),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         position: PopupMenuPosition.under,
                         onSelected: (v) => _handleMenu(v, context, auth),

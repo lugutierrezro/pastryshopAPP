@@ -82,6 +82,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       'direccion': _direccionCtrl.text.trim(),
     });
 
+    if (!mounted) return;
     setState(() => _isSaving = false);
 
     if (success) {
