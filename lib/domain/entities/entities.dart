@@ -71,7 +71,8 @@ class CategoryEntity {
   const CategoryEntity({required this.id, required this.nombre, required this.descripcion, required this.icono});
 
   factory CategoryEntity.fromJson(Map<String, dynamic> j) => CategoryEntity(
-    id: j['id'] ?? 0, nombre: j['nombre'] ?? '',
+    id: j['id'] is int ? j['id'] : int.tryParse(j['id']?.toString() ?? '') ?? 0,
+    nombre: j['nombre'] ?? '',
     descripcion: j['descripcion'] ?? '', icono: j['icono'] ?? '',
   );
 }
@@ -116,11 +117,12 @@ class CartItemEntity {
   final int cantidad;
   final double subtotal;
   final int stock;
+  final Map<String, dynamic>? opcionesPersonalizadas;
 
   const CartItemEntity({
     required this.id, required this.productId, required this.nombre,
     required this.precio, required this.imagenUrl, required this.cantidad,
-    required this.subtotal, required this.stock,
+    required this.subtotal, required this.stock, this.opcionesPersonalizadas,
   });
 
   factory CartItemEntity.fromJson(Map<String, dynamic> j) => CartItemEntity(
@@ -128,6 +130,9 @@ class CartItemEntity {
     nombre: j['nombre'] ?? '', precio: (j['precio'] ?? 0).toDouble(),
     imagenUrl: j['imagen_url'] ?? '', cantidad: j['cantidad'] ?? 1,
     subtotal: (j['subtotal'] ?? 0).toDouble(), stock: j['stock'] ?? 0,
+    opcionesPersonalizadas: j['opciones_personalizadas'] != null 
+        ? (j['opciones_personalizadas'] is String ? null /* wait, usually handled in backend */ : j['opciones_personalizadas']) 
+        : null,
   );
 }
 
@@ -178,16 +183,19 @@ class OrderItemEntity {
   final double precioUnit;
   final double subtotal;
   final String imagenUrl;
+  final Map<String, dynamic>? opcionesPersonalizadas;
 
   const OrderItemEntity({
     required this.id, required this.producto, required this.cantidad,
     required this.precioUnit, required this.subtotal, required this.imagenUrl,
+    this.opcionesPersonalizadas,
   });
 
   factory OrderItemEntity.fromJson(Map<String, dynamic> j) => OrderItemEntity(
     id: j['id'] ?? 0, producto: j['producto'] ?? '',
     cantidad: j['cantidad'] ?? 1, precioUnit: (j['precio_unit'] ?? 0).toDouble(),
     subtotal: (j['subtotal'] ?? 0).toDouble(), imagenUrl: j['imagen_url'] ?? '',
+    opcionesPersonalizadas: j['opciones_personalizadas'],
   );
 }
 

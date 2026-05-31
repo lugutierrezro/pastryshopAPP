@@ -18,6 +18,8 @@ import 'package:pastryshop/presentation/screens/profile/favorites_screen.dart';
 import 'package:pastryshop/presentation/screens/layout/main_layout_screen.dart';
 import 'package:pastryshop/presentation/screens/offers/offers_screen.dart';
 import 'package:pastryshop/presentation/screens/admin/admin_dashboard_screen.dart';
+import 'package:pastryshop/presentation/screens/admin/admin_categories_screen.dart';
+import 'package:pastryshop/presentation/screens/admin/admin_category_form_screen.dart';
 import 'package:pastryshop/presentation/screens/admin/admin_products_screen.dart';
 import 'package:pastryshop/presentation/screens/admin/admin_users_screen.dart';
 import 'package:pastryshop/presentation/screens/admin/admin_orders_screen.dart';
@@ -100,6 +102,12 @@ class AppRouter {
           final s = ctx.read<SupplierProvider>().suppliers.cast<SupplierEntity?>().firstWhere((e) => e?.id == id, orElse: () => null);
           return AdminSupplierFormScreen(supplier: s);
         },
+      ),
+      GoRoute(path: '/admin/categories', builder: (_, __) => const AdminCategoriesScreen()),
+      GoRoute(path: '/admin/categories/new', builder: (_, __) => const AdminCategoryFormScreen()),
+      GoRoute(
+        path: '/admin/categories/:id',
+        builder: (_, s) => AdminCategoryFormScreen(category: s.extra as CategoryEntity?),
       ),
       GoRoute(path: '/admin/purchases', builder: (_, __) => const AdminPurchasesScreen()),
       GoRoute(path: '/admin/roles', builder: (_, __) => const AdminRolesScreen()),

@@ -35,15 +35,15 @@ class CartProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> addItem(int productId, int cantidad) async {
+  Future<bool> addItem(int productId, int cantidad, {Map<String, dynamic>? options}) async {
     try {
-      int newQuantity = cantidad;
-      final existing = _items.where((i) => i.productId == productId).toList();
-      if (existing.isNotEmpty) {
-        newQuantity += existing.first.cantidad;
-      }
+      final body = {
+        'product_id': productId, 
+        'cantidad': cantidad,
+      };
+      if (options != null) body['opciones_personalizadas'] = options;
       
-      final res = await ApiService.post(ApiRoutes.cart, {'product_id': productId, 'cantidad': newQuantity}, auth: true);
+      final res = await ApiService.post(ApiRoutes.cart, body, auth: true);
       if (res['success'] == true) { await fetchCart(); return true; }
       _error = res['message'];
       notifyListeners();

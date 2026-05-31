@@ -119,7 +119,105 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
               );
             },
           ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AppTheme.adminPrimary,
+        onPressed: _showCreateModal,
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
     );
+  }
+
+  void _showCreateModal() {
+    final nombreCtrl = TextEditingController();
+    final apellidoCtrl = TextEditingController();
+    final emailCtrl = TextEditingController();
+    final passCtrl = TextEditingController();
+    int selectedRoleId = 2; // Default to Cliente
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setStateModal) {
+            final roles = ctx.watch<RoleProvider>().roles;
+            if (roles.isEmpty) return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
+
+            return Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, left: 24, right: 24, top: 24),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Nuevo Usuario', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 16),
+                    TextField(controller: nombreCtrl, decoration: InputDecoration(labelText: 'Nombre', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
+                    const SizedBox(height: 12),
+                    TextField(controller: apellidoCtrl, decoration: InputDecoration(labelText: 'Apellido', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
+                    const SizedBox(height: 12),
+                    TextField(controller: emailCtrl, decoration: InputDecoration(labelText: 'Email', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
+                    const SizedBox(height: 12),
+                    TextField(controller: passCtrl, obscureText: true, decoration: InputDecoration(labelText: 'Contraseña temporal', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)))),
+                    const SizedBox(height: 16),
+                    const Text('Rol', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(12)),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<int>(
+                          isExpanded: true,
+                          value: selectedRoleId,
+                          items: roles.map((r) => DropdownMenuItem(value: r.id, child: Text(r.nombre))).toList(),
+                          onChanged: (v) => setStateModal(() => selectedRoleId = v!),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: AppTheme.adminPrimary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                        onPressed: () async {
+                          if (nombreCtrl.text.isEmpty || apellidoCtrl.text.isEmpty || emailCtrl.text.isEmpty || passCtrl.text.isEmpty) {
+                            ToastUtils.showError('Completa todos los campos');
+                            return;
+                          }
+                          Navigator.pop(ctx);
+                          _createUser(nombreCtrl.text, apellidoCtrl.text, emailCtrl.text, passCtrl.text, selectedRoleId);
+                        },
+                        child: const Text('Crear Usuario', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+            );
+          }
+        );
+      }
+    );
+  }
+
+  void _createUser(String nombre, String apellido, String email, String password, int rolId) async {
+    final res = await ApiService.post(ApiRoutes.users, {
+      'nombre': nombre,
+      'apellido': apellido,
+      'email': email,
+      'password': password,
+      'rol_id': rolId,
+    }, auth: true);
+    
+    if (res['success'] == true) {
+      ToastUtils.showSuccess('Usuario creado exitosamente');
+      _loadUsers();
+    } else {
+      ToastUtils.showError(res['message'] ?? 'Error al crear usuario');
+    }
   }
 
   void _showEditModal(Map user) {

@@ -138,4 +138,23 @@ class ProductProvider extends ChangeNotifier {
     }
     return null;
   }
+
+  // Admin Categories
+  Future<bool> createCategory(Map<String, dynamic> data) async {
+    final res = await ApiService.post(ApiRoutes.categories, data, auth: true);
+    if (res['success'] == true) { await fetchCategories(); return true; }
+    return false;
+  }
+
+  Future<bool> updateCategory(int id, Map<String, dynamic> data) async {
+    final res = await ApiService.put(ApiRoutes.category('$id'), data, auth: true);
+    if (res['success'] == true) { await fetchCategories(); return true; }
+    return false;
+  }
+
+  Future<bool> deleteCategory(int id) async {
+    final res = await ApiService.delete(ApiRoutes.category('$id'), auth: true);
+    if (res['success'] == true) { await fetchCategories(); return true; }
+    return false;
+  }
 }

@@ -21,6 +21,7 @@ class ApiRoutes {
 
   // Categories
   static const String categories = 'categories';
+  static String category(String id) => 'categories/$id';
 
   // Products
   static const String products = 'products';

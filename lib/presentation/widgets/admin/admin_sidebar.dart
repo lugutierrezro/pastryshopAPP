@@ -94,6 +94,7 @@ class AdminSidebar extends StatelessWidget {
                     title: 'Catálogo y Ventas',
                     icon: Icons.storefront,
                     children: [
+                      if (user.hasPermission('manage_products')) _buildSubItem(context, 'Categorías', '/admin/categories'),
                       if (user.hasPermission('manage_products')) _buildSubItem(context, 'Productos', '/admin/products'),
                       if (user.hasPermission('manage_orders')) _buildSubItem(context, 'Pedidos', '/admin/orders', badgeCount: pendingCount),
                     ],
