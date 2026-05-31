@@ -12,6 +12,7 @@ import 'presentation/providers/employee_provider.dart';
 import 'presentation/providers/log_provider.dart';
 import 'presentation/providers/notification_provider.dart';
 import 'presentation/providers/role_provider.dart';
+import 'presentation/providers/favorite_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,6 +39,7 @@ class PastryShopApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => LogProvider()),
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => RoleProvider()),
+        ChangeNotifierProvider(create: (_) => FavoriteProvider()),
       ],
       child: Consumer<AuthProvider>(
         builder: (_, auth, __) => MaterialApp.router(

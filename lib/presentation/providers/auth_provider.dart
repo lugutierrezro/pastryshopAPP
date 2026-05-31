@@ -95,4 +95,60 @@ class AuthProvider extends ChangeNotifier {
     await prefs.setString(AppConstants.tokenKey, _token!);
     await prefs.setString(AppConstants.userKey, jsonEncode(_user!.toJson()));
   }
+
+  Future<bool> updateProfile(Map<String, dynamic> data) async {
+    _loading = true; _error = null; notifyListeners();
+    try {
+      final res = await ApiService.put(ApiRoutes.me, data, auth: true);
+      if (res['success'] == true) {
+        // Refresh user info
+        final meRes = await ApiService.get(ApiRoutes.me, auth: true);
+        if (meRes['success'] == true) {
+          _user = UserEntity.fromJson(meRes['data']);
+          await _persist();
+          return true;
+        }
+      }
+      _error = res['message'] ?? 'Error al actualizar perfil';
+      return false;
+    } catch (e) {
+      _error = 'Error de conexión';
+      return false;
+    } finally {
+      _loading = false; notifyListeners();
+    }
+  }
+
+  Future<String?> uploadProfilePicture(String fileName, List<int> fileBytes) async {
+    _loading = true; notifyListeners();
+    try {
+      final res = await ApiService.postMultipart(
+        ApiRoutes.upload,
+        fileField: 'image',
+        fileName: fileName,
+        fileBytes: fileBytes,
+        auth: true,
+      );
+      if (res['success'] == true && res['data'] != null) {
+        final imageUrl = res['data']['url'];
+        // Now update the user profile with this URL
+        await updateProfile({'imagen_url': imageUrl});
+        return imageUrl;
+      }
+    } catch (e) {
+      _error = 'Error al subir imagen';
+    } finally {
+      _loading = false; notifyListeners();
+    }
+    return null;
+  }
+
+  Future<void> refreshUser() async {
+    final res = await ApiService.get(ApiRoutes.me, auth: true);
+    if (res['success'] == true) {
+      _user = UserEntity.fromJson(res['data']);
+      await _persist();
+      notifyListeners();
+    }
+  }
 }

@@ -2,6 +2,7 @@ class ApiRoutes {
   // Auth
   static const String login = 'auth/login';
   static const String register = 'auth/register';
+  static const String me = 'auth/me';
 
   // Users
   static const String users = 'users';
@@ -46,4 +47,8 @@ class ApiRoutes {
   // Cart
   static const String cart = 'cart';
   static String cartItem(String id) => 'cart/$id';
+
+  // Favorites
+  static const String favorites = 'favorites';
+  static String favoriteItem(String id) => 'favorites/$id';
 }

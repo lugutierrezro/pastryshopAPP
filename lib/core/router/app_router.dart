@@ -14,6 +14,9 @@ import 'package:pastryshop/presentation/screens/orders/custom_order_screen.dart'
 import 'package:pastryshop/presentation/screens/orders/order_history_screen.dart';
 import 'package:pastryshop/presentation/screens/orders/order_detail_screen.dart';
 import 'package:pastryshop/presentation/screens/profile/profile_screen.dart';
+import 'package:pastryshop/presentation/screens/profile/favorites_screen.dart';
+import 'package:pastryshop/presentation/screens/layout/main_layout_screen.dart';
+import 'package:pastryshop/presentation/screens/offers/offers_screen.dart';
 import 'package:pastryshop/presentation/screens/admin/admin_dashboard_screen.dart';
 import 'package:pastryshop/presentation/screens/admin/admin_products_screen.dart';
 import 'package:pastryshop/presentation/screens/admin/admin_users_screen.dart';
@@ -51,7 +54,17 @@ class AppRouter {
       return null;
     },
     routes: [
-      GoRoute(path: '/',             builder: (_, __) => const HomeScreen()),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return MainLayoutScreen(navigationShell: navigationShell);
+        },
+        branches: [
+          StatefulShellBranch(routes: [GoRoute(path: '/', builder: (_, __) => const HomeScreen())]),
+          StatefulShellBranch(routes: [GoRoute(path: '/offers', builder: (_, __) => const OffersScreen())]),
+          StatefulShellBranch(routes: [GoRoute(path: '/favorites', builder: (_, __) => const FavoritesScreen())]),
+          StatefulShellBranch(routes: [GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen())]),
+        ],
+      ),
       GoRoute(path: '/login',        builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register',     builder: (_, __) => const RegisterScreen()),
       GoRoute(path: '/product/:id',  builder: (_, s) => ProductDetailScreen(id: int.parse(s.pathParameters['id']!))),
@@ -60,7 +73,6 @@ class AppRouter {
       GoRoute(path: '/custom-order', builder: (_, __) => const CustomOrderScreen()),
       GoRoute(path: '/orders',       builder: (_, __) => const OrderHistoryScreen()),
       GoRoute(path: '/orders/:id',   builder: (_, s) => OrderDetailScreen(id: int.parse(s.pathParameters['id']!))),
-      GoRoute(path: '/profile',      builder: (_, __) => const ProfileScreen()),
       // Admin
       GoRoute(path: '/admin',          builder: (_, __) => const AdminDashboardScreen()),
       GoRoute(path: '/admin/products', builder: (_, __) => const AdminProductsScreen()),

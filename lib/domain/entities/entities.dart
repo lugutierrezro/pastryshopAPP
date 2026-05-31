@@ -12,11 +12,12 @@ class UserEntity {
   final int? rolId;
   final String rol;
   final List<String> permisos;
+  final String? imagenUrl;
 
   const UserEntity({
     required this.id, required this.nombre, required this.apellido,
     required this.email, required this.telefono, required this.direccion,
-    this.rolId, required this.rol, this.permisos = const [],
+    this.rolId, required this.rol, this.permisos = const [], this.imagenUrl,
   });
 
   String get fullName => '$nombre $apellido';
@@ -30,12 +31,13 @@ class UserEntity {
     email: j['email'] ?? '', telefono: j['telefono'] ?? '',
     direccion: j['direccion'] ?? '', rolId: j['rol_id'], rol: j['rol'] ?? 'cliente',
     permisos: List<String>.from(j['permisos'] ?? []),
+    imagenUrl: j['imagen_url'],
   );
 
   Map<String, dynamic> toJson() => {
     'id': id, 'nombre': nombre, 'apellido': apellido, 'email': email,
     'telefono': telefono, 'direccion': direccion, 'rol_id': rolId, 'rol': rol,
-    'permisos': permisos,
+    'permisos': permisos, 'imagen_url': imagenUrl,
   };
 }
 
