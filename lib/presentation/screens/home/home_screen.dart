@@ -66,7 +66,7 @@ class _HomeScreenState extends State<HomeScreen> {
         slivers: [
           // ---- Premium App Bar ----
           SliverAppBar(
-            expandedHeight: 140,
+            expandedHeight: 200,
             floating: true,
             pinned: true,
             elevation: 0,
@@ -88,6 +88,27 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          Row(
+                            children: [
+                              Image.asset(
+                                'assets/images/logo.png',
+                                width: 40,
+                                height: 40,
+                                errorBuilder: (ctx, err, stack) => const Icon(Icons.cake, color: AppTheme.primary, size: 28),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'THE PASTRYSHOP',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 1.5,
+                                  color: AppTheme.onBackground,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
                           Text(
                             auth.isLoggedIn ? 'Bienvenido,' : 'Buenos días,',
                             style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: AppTheme.textSecondary),

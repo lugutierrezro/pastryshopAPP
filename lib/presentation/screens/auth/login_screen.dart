@@ -80,15 +80,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               opacity: _fadeAnim,
               child: Column(
                 children: [
-                  const SizedBox(height: 32),
-                  // Logo area
-                  const Text('🎂', style: TextStyle(fontSize: 64)),
-                  Text('La Pastelería',
-                    style: Theme.of(context).textTheme.displayMedium?.copyWith(color: Colors.white)),
-                  Text('Inicia sesión para continuar',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70)),
-
-                  const SizedBox(height: 32),
+                  // Minimal header
+                  const SizedBox(height: 64),
 
                   // Card
                   Expanded(
@@ -104,6 +97,40 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
+                              // App Logo Placeholder
+                              Center(
+                                child: Column(
+                                  children: [
+                                    Image.asset(
+                                      'assets/images/logo.png',
+                                      width: 100,
+                                      height: 100,
+                                      errorBuilder: (ctx, err, stack) => const Icon(Icons.cake, size: 80, color: AppTheme.primary),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'THE',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 2,
+                                        color: AppTheme.onBackground,
+                                      ),
+                                    ),
+                                    Text(
+                                      'PASTRYSHOP',
+                                      style: TextStyle(
+                                        fontSize: 28,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 3,
+                                        color: AppTheme.onBackground,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 48),
+
                               Text('Bienvenido/a', style: Theme.of(context).textTheme.headlineMedium),
                               const SizedBox(height: 4),
                               Text('Admin, empleado o cliente — mismo acceso',

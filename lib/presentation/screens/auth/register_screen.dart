@@ -71,11 +71,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           SafeArea(
             child: Column(
               children: [
-                const SizedBox(height: 24),
-                const Text('🍰', style: TextStyle(fontSize: 48)),
+                const SizedBox(height: 32),
                 Text('Crear cuenta', style: Theme.of(context).textTheme.headlineLarge?.copyWith(color: Colors.white)),
-                Text('Únete a nuestra familia pastelera', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70)),
-                const SizedBox(height: 24),
+                Text('Únete a la familia', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70)),
+                const SizedBox(height: 32),
                 Expanded(
                   child: Container(
                     decoration: const BoxDecoration(

@@ -5,33 +5,33 @@ import 'package:google_fonts/google_fonts.dart';
 //  App Theme  — Premium Glassmorphism Vibe
 // ============================================================
 class AppTheme {
-  // ---- Premium Color Palette ----
-  static const Color primary      = Color(0xFF8D6E63); // Brown / Coffee
-  static const Color primaryDark  = Color(0xFF5D4037); 
-  static const Color primaryLight = Color(0xFFD7CCC8);
+  // ---- Premium Color Palette (Pastel Pink & White) ----
+  static const Color primary      = Color(0xFFF48FB1); // Pastel Pink
+  static const Color primaryDark  = Color(0xFFE91E63); // Darker Pink for contrast
+  static const Color primaryLight = Color(0xFFF8BBD0); // Light Pink
   
-  static const Color secondary    = Color(0xFFE2C4A2); // Caramel/Gold
-  static const Color accent       = Color(0xFFE8A87C); // Soft Peach
+  static const Color secondary    = Color(0xFFFFCDD2); // Very light pink
+  static const Color accent       = Color(0xFFFF8A80); // Accent pink
   
-  static const Color background   = Color(0xFFFDFBF7); // Warm off-white
-  static const Color surface      = Color(0xFFFFFFFF);
+  static const Color background   = Color(0xFFFFFFFF); // Pure White
+  static const Color surface      = Color(0xFFFFFFFF); // Pure White
   static const Color surfaceGlass = Color(0xB3FFFFFF); // 70% opacity for glass
   
-  static const Color onPrimary    = Color(0xFFFFFFFF);
-  static const Color onBackground = Color(0xFF3E2723); // Deep dark brown
-  static const Color textSecondary= Color(0xFF8D6E63);
+  static const Color onPrimary    = Color(0xFFFFFFFF); // White text on pink
+  static const Color onBackground = Color(0xFF4A3B32); // Dark brown text (matches logo)
+  static const Color textSecondary= Color(0xFF8D6E63); // Lighter brown
   
-  static const Color divider      = Color(0xFFEFEBE9); // Restored divider
-  static const Color cream        = Color(0xFFFFF8F0); // Restored
+  static const Color divider      = Color(0xFFFCE4EC); // Very faint pink divider
+  static const Color cream        = Color(0xFFFFF0F5); // Lavender blush
   
-  static const Color success      = Color(0xFF689F38);
-  static const Color warning      = Color(0xFFFF9800); // Restored
-  static const Color error        = Color(0xFFD32F2F);
-  static const Color info         = Color(0xFF2196F3); // Restored
+  static const Color success      = Color(0xFF81C784);
+  static const Color warning      = Color(0xFFFFB74D);
+  static const Color error        = Color(0xFFE57373);
+  static const Color info         = Color(0xFF64B5F6);
 
   // Admin & Employee colors
-  static const Color adminPrimary = Color(0xFF5D4037); // Matched with primaryDark
-  static const Color empPrimary   = Color(0xFF8D6E63); // Matched with primary
+  static const Color adminPrimary = Color(0xFF4A3B32); // Dark brown
+  static const Color empPrimary   = Color(0xFFF48FB1); // Pastel pink
 
   static ThemeData get lightTheme => ThemeData(
     useMaterial3: true,
