@@ -18,7 +18,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => context.read<OrderProvider>().fetchOrders());
+    WidgetsBinding.instance.addPostFrameCallback((_) => context.read<OrderProvider>().fetchOrders(all: false));
   }
 
   @override
@@ -85,7 +85,7 @@ class _OrderTile extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('\$${order.total.toStringAsFixed(2)}',
+                  Text('S/ ${order.total.toStringAsFixed(2)}',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: AppTheme.primary, fontWeight: FontWeight.bold)),
                   const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
                 ],

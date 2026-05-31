@@ -36,6 +36,11 @@ dependencies:
 
   cupertino_icons: ^1.0.8
   google_fonts: ^6.3.2
+  image_picker: ^1.2.1
+  flutter_map: ^8.3.0
+  latlong2: ^0.9.1
+  pdf: ^3.11.3
+  printing: ^5.14.3
 
 dev_dependencies:
   flutter_test:

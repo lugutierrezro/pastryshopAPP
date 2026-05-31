@@ -95,7 +95,7 @@ class ProductCard extends StatelessWidget {
                           children: [
                             Flexible(
                               child: Text(
-                                '\$${product.precio.toStringAsFixed(2)}',
+                                'S/ ${product.precio.toStringAsFixed(2)}',
                                 style: const TextStyle(color: AppTheme.primaryDark, fontWeight: FontWeight.w800, fontSize: 16),
                                 overflow: TextOverflow.ellipsis,
                               ),

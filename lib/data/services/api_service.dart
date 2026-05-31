@@ -60,6 +60,31 @@ class ApiService {
     return _parse(res);
   }
 
+  // ---- MULTIPART POST ----
+  static Future<Map<String, dynamic>> postMultipart(String path, {required String fileField, required String fileName, required List<int> fileBytes, bool auth = false}) async {
+    final uri = Uri.parse('${AppConstants.apiUrl}/$path');
+    final req = http.MultipartRequest('POST', uri);
+    
+    if (auth) {
+      final token = await _getToken();
+      if (token != null) req.headers['Authorization'] = 'Bearer $token';
+    }
+
+    req.files.add(http.MultipartFile.fromBytes(
+      fileField,
+      fileBytes,
+      filename: fileName,
+    ));
+
+    try {
+      final streamedRes = await req.send().timeout(_timeout);
+      final res = await http.Response.fromStream(streamedRes);
+      return _parse(res);
+    } catch (_) {
+      return {'success': false, 'message': 'Error de servidor', '_statusCode': 500};
+    }
+  }
+
   static Map<String, dynamic> _parse(http.Response res) {
     try {
       final data = jsonDecode(res.body) as Map<String, dynamic>;

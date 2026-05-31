@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:pastryshop/core/constants/app_constants.dart';
 import 'package:pastryshop/data/services/api_service.dart';
 import 'package:pastryshop/domain/entities/entities.dart';
+import 'package:pastryshop/core/constants/api_routes.dart';
 
 // ============================================================
 //  AuthProvider
@@ -37,7 +38,7 @@ class AuthProvider extends ChangeNotifier {
   Future<bool> login(String email, String password) async {
     _loading = true; _error = null; notifyListeners();
     try {
-      final res = await ApiService.post('auth/login', {'email': email, 'password': password});
+      final res = await ApiService.post(ApiRoutes.login, {'email': email, 'password': password});
       if (res['success'] == true) {
         _token = res['data']['token'];
         _user  = UserEntity.fromJson(res['data']['user']);
@@ -61,7 +62,7 @@ class AuthProvider extends ChangeNotifier {
   }) async {
     _loading = true; _error = null; notifyListeners();
     try {
-      final res = await ApiService.post('auth/register', {
+      final res = await ApiService.post(ApiRoutes.register, {
         'nombre': nombre, 'apellido': apellido, 'email': email,
         'password': password, 'telefono': telefono, 'direccion': direccion,
       });

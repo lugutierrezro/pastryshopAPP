@@ -29,7 +29,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   void _addToCart(product) {
-    context.read<CartProvider>().addItem(product, _cantidad);
+    context.read<CartProvider>().addItem(product.id, _cantidad);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: const Text('✅ Agregado al carrito', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       backgroundColor: AppTheme.success,
@@ -86,10 +86,39 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           Positioned(
             top: 0, left: 0, right: 0,
             height: MediaQuery.of(context).size.height * 0.55,
-            child: Image.network(
-              p.imagenUrl,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(color: AppTheme.secondary),
+            child: GestureDetector(
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (_) => Dialog.fullscreen(
+                    backgroundColor: Colors.black87,
+                    child: Stack(
+                      children: [
+                        Center(
+                          child: InteractiveViewer(
+                            panEnabled: true,
+                            minScale: 1,
+                            maxScale: 4,
+                            child: Image.network(p.imagenUrl, fit: BoxFit.contain),
+                          ),
+                        ),
+                        Positioned(
+                          top: 40, right: 20,
+                          child: IconButton(
+                            icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+              child: Image.network(
+                p.imagenUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(color: AppTheme.secondary),
+              ),
             ),
           ),
           
@@ -139,7 +168,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
-                                  '\$${p.precio.toStringAsFixed(2)}',
+                                  'S/ ${p.precio.toStringAsFixed(2)}',
                                   style: const TextStyle(color: AppTheme.primaryDark, fontWeight: FontWeight.w800, fontSize: 18),
                                 ),
                               ),
@@ -242,7 +271,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const Text('Total', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
-                            Text('\$${totalPrice.toStringAsFixed(2)}', style: const TextStyle(color: AppTheme.onBackground, fontSize: 24, fontWeight: FontWeight.w900)),
+                            Text('S/ ${totalPrice.toStringAsFixed(2)}', style: const TextStyle(color: AppTheme.onBackground, fontSize: 24, fontWeight: FontWeight.w900)),
                           ],
                         ),
                         ElevatedButton.icon(

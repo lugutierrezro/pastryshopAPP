@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:pastryshop/core/theme/app_theme.dart';
 import 'package:pastryshop/presentation/providers/auth_provider.dart';
 import 'package:pastryshop/presentation/providers/cart_provider.dart';
@@ -20,6 +24,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String _tipo     = 'tienda';
   final _dirCtrl   = TextEditingController();
   final _notasCtrl = TextEditingController();
+  
+  String _tipoComprobante = 'boleta';
+  final _docCtrl = TextEditingController();
+  
+  // Map State
+  final MapController _mapCtrl = MapController();
+  LatLng _selectedLocation = const LatLng(-12.0464, -77.0428); // Lima
+  bool _isLoadingAddress = false;
 
   @override
   void initState() {
@@ -27,22 +39,82 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = context.read<AuthProvider>();
       if (!auth.isLoggedIn) context.pushReplacement('/login');
+      
+      final cart = context.read<CartProvider>();
+      if (cart.customNotes != null) {
+        _notasCtrl.text = cart.customNotes!;
+      }
     });
   }
 
   @override
   void dispose() {
-    _dirCtrl.dispose(); _notasCtrl.dispose(); super.dispose();
+    _dirCtrl.dispose();
+    _notasCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _getAddressFromLatLng(LatLng pos) async {
+    setState(() {
+      _selectedLocation = pos;
+      _isLoadingAddress = true;
+    });
+    try {
+      final url = Uri.parse('https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.latitude}&lon=${pos.longitude}');
+      final response = await http.get(url, headers: {'User-Agent': 'PastryShopApp/1.0'});
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['display_name'] != null) {
+          setState(() {
+            _dirCtrl.text = data['display_name'];
+          });
+        }
+      }
+    } catch (_) {
+      // Ignore
+    } finally {
+      if (mounted) setState(() => _isLoadingAddress = false);
+    }
+  }
+
+  void _showPaymentGateway() {
+    if (!_formKey.currentState!.validate()) return;
+    if (_tipo == 'domicilio' && _dirCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Por favor, ingresa tu dirección'), backgroundColor: AppTheme.error));
+      return;
+    }
+    if (_tipoComprobante == 'factura' && _docCtrl.text.trim().length != 11) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Por favor, ingresa un RUC válido (11 dígitos)'), backgroundColor: AppTheme.error));
+      return;
+    }
+    if (_tipoComprobante == 'boleta' && _docCtrl.text.trim().isNotEmpty && _docCtrl.text.trim().length != 8) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Por favor, ingresa un DNI válido (8 dígitos)'), backgroundColor: AppTheme.error));
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _MockPaymentGateway(
+        total: context.read<CartProvider>().total,
+        onSuccess: () {
+          Navigator.pop(ctx);
+          _placeOrder();
+        },
+      ),
+    );
   }
 
   Future<void> _placeOrder() async {
-    if (!_formKey.currentState!.validate()) return;
     final orders = context.read<OrderProvider>();
     final cart   = context.read<CartProvider>();
     final ok     = await orders.placeOrder(
       tipoEntrega: _tipo,
       direccionEntrega: _tipo == 'domicilio' ? _dirCtrl.text.trim() : null,
       notas: _notasCtrl.text.trim().isEmpty ? null : _notasCtrl.text.trim(),
+      tipoComprobante: _tipoComprobante,
+      documentoCliente: _docCtrl.text.trim(),
     );
     if (!mounted) return;
     if (ok) {
@@ -57,7 +129,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             children: [
               const Text('🎉', style: TextStyle(fontSize: 64)),
               const SizedBox(height: 16),
-              const Text('¡Pedido realizado!', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              const Text('¡Pago Exitoso!', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               Text('Tu pedido está en proceso. Recibirás actualizaciones sobre su estado.',
                 textAlign: TextAlign.center, style: TextStyle(color: AppTheme.textSecondary)),
@@ -109,7 +181,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     ),
                     const SizedBox(width: 12),
                     Expanded(child: Text('${item.nombre} × ${item.cantidad}')),
-                    Text('\$${item.subtotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                    Text('S/ ${item.subtotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.w600)),
                   ],
                 ),
               )),
@@ -118,7 +190,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('Total', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                  Text('\$${cart.total.toStringAsFixed(2)}',
+                  Text('S/ ${cart.total.toStringAsFixed(2)}',
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: AppTheme.primary)),
                 ],
               ),
@@ -135,13 +207,64 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
               if (_tipo == 'domicilio') ...[
                 const SizedBox(height: 16),
+                const Text('Ubica tu dirección en el mapa:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Container(
+                  height: 200,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppTheme.divider),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Stack(
+                    children: [
+                      FlutterMap(
+                        mapController: _mapCtrl,
+                        options: MapOptions(
+                          initialCenter: _selectedLocation,
+                          initialZoom: 15.0,
+                          onTap: (_, pos) => _getAddressFromLatLng(pos),
+                        ),
+                        children: [
+                          TileLayer(
+                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            userAgentPackageName: 'com.example.pastryshop',
+                          ),
+                          MarkerLayer(
+                            markers: [
+                              Marker(
+                                point: _selectedLocation,
+                                width: 40, height: 40,
+                                child: const Icon(Icons.location_pin, color: AppTheme.primaryDark, size: 40),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      if (_isLoadingAddress)
+                        const Center(child: CircularProgressIndicator()),
+                      Positioned(
+                        bottom: 8, right: 8,
+                        child: FloatingActionButton.small(
+                          heroTag: 'map_btn',
+                          backgroundColor: Colors.white,
+                          child: const Icon(Icons.my_location, color: AppTheme.primaryDark),
+                          onPressed: () {
+                            _mapCtrl.move(const LatLng(-12.0464, -77.0428), 15);
+                          },
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
                 TextFormField(
                   controller: _dirCtrl,
                   decoration: const InputDecoration(
                     labelText: 'Dirección de entrega',
                     prefixIcon: Icon(Icons.location_on_outlined),
                   ),
-                  validator: (v) => _tipo == 'domicilio' && (v == null || v.isEmpty) ? 'Ingresa una dirección' : null,
+                  validator: (v) => _tipo == 'domicilio' && (v == null || v.isEmpty) ? 'Ingresa o selecciona una dirección' : null,
                 ),
               ],
 
@@ -155,15 +278,34 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   prefixIcon: Icon(Icons.note_outlined),
                 ),
               ),
+
+              const SizedBox(height: 28),
+              Text('Comprobante de Pago', style: Theme.of(context).textTheme.headlineMedium),
+              const SizedBox(height: 12),
+              Row(children: [
+                _DeliveryOption(label: '🧾 Boleta', value: 'boleta', group: _tipoComprobante, onChanged: (v) => setState(() { _tipoComprobante = v!; _docCtrl.clear(); })),
+                const SizedBox(width: 12),
+                _DeliveryOption(label: '🏢 Factura', value: 'factura', group: _tipoComprobante, onChanged: (v) => setState(() { _tipoComprobante = v!; _docCtrl.clear(); })),
+              ]),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _docCtrl,
+                decoration: InputDecoration(
+                  labelText: _tipoComprobante == 'boleta' ? 'DNI (opcional)' : 'RUC (Requerido)',
+                  prefixIcon: const Icon(Icons.badge_outlined),
+                ),
+                keyboardType: TextInputType.number,
+                maxLength: _tipoComprobante == 'boleta' ? 8 : 11,
+              ),
               const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: orders.loading ? null : _placeOrder,
+                  onPressed: orders.loading ? null : _showPaymentGateway,
                   icon: orders.loading
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Icon(Icons.check_circle_outline),
-                  label: const Text('Confirmar pedido'),
+                    : const Icon(Icons.payment),
+                  label: const Text('Ir al Pago'),
                   style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
                 ),
               ),
@@ -188,19 +330,146 @@ class _DeliveryOption extends StatelessWidget {
         onTap: () => onChanged(value),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
-            color: selected ? AppTheme.primary.withOpacity(0.1) : AppTheme.cream,
+            color: selected ? AppTheme.primaryLight.withOpacity(0.2) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(color: selected ? AppTheme.primary : AppTheme.divider, width: selected ? 2 : 1),
-            borderRadius: BorderRadius.circular(12),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Radio<String>(value: value, groupValue: group, onChanged: onChanged, activeColor: AppTheme.primary),
-              Text(label, style: TextStyle(fontWeight: selected ? FontWeight.bold : FontWeight.normal, color: selected ? AppTheme.primary : AppTheme.onBackground)),
-            ],
+          child: Center(
+            child: Text(label, style: TextStyle(fontWeight: selected ? FontWeight.bold : FontWeight.normal, color: selected ? AppTheme.primaryDark : Colors.black87)),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MockPaymentGateway extends StatefulWidget {
+  final double total;
+  final VoidCallback onSuccess;
+  const _MockPaymentGateway({required this.total, required this.onSuccess});
+
+  @override
+  State<_MockPaymentGateway> createState() => _MockPaymentGatewayState();
+}
+
+class _MockPaymentGatewayState extends State<_MockPaymentGateway> {
+  bool _isProcessing = false;
+  final _formKey = GlobalKey<FormState>();
+
+  void _processPayment() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isProcessing = true);
+    
+    // Simular procesamiento del banco/pasarela
+    await Future.delayed(const Duration(seconds: 2));
+    
+    if (!mounted) return;
+    setState(() => _isProcessing = false);
+    widget.onSuccess();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      padding: EdgeInsets.only(
+        top: 24, left: 24, right: 24,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Pago Seguro', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                Image.network('https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Visa_Inc._logo.svg/2560px-Visa_Inc._logo.svg.png', width: 40, errorBuilder: (_,__,___) => const SizedBox()),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text('Total a pagar: S/ ${widget.total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, color: AppTheme.primary, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 24),
+            
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: 'Número de Tarjeta',
+                hintText: '0000 0000 0000 0000',
+                prefixIcon: const Icon(Icons.credit_card),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              keyboardType: TextInputType.number,
+              maxLength: 16,
+              validator: (v) => v!.length < 16 ? 'Ingresa una tarjeta válida' : null,
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    decoration: InputDecoration(
+                      labelText: 'Vencimiento',
+                      hintText: 'MM/YY',
+                      prefixIcon: const Icon(Icons.date_range),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    maxLength: 5,
+                    validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextFormField(
+                    decoration: InputDecoration(
+                      labelText: 'CVV',
+                      hintText: '123',
+                      prefixIcon: const Icon(Icons.security),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    keyboardType: TextInputType.number,
+                    maxLength: 3,
+                    obscureText: true,
+                    validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: 'Nombre del Titular',
+                prefixIcon: const Icon(Icons.person_outline),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              validator: (v) => v!.isEmpty ? 'Ingresa el nombre' : null,
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isProcessing ? null : _processPayment,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: _isProcessing
+                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : Text('Pagar S/ ${widget.total.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+              ),
+            ),
+          ],
         ),
       ),
     );

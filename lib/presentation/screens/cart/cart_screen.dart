@@ -110,10 +110,35 @@ class _CartItemTile extends StatelessWidget {
               children: [
                 Text(item.nombre, style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600), maxLines: 2, overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 4),
-                Text('\$${item.precio.toStringAsFixed(2)} × ${item.cantidad}',
-                  style: Theme.of(context).textTheme.bodyMedium),
-                Text('Subtotal: \$${item.subtotal.toStringAsFixed(2)}',
-                  style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold)),
+                Text('Subtotal: S/ ${item.subtotal.toStringAsFixed(2)}',
+                  style: const TextStyle(color: AppTheme.primaryDark, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    InkWell(
+                      onTap: item.cantidad > 1 
+                        ? () => context.read<CartProvider>().updateQuantity(item.productId, item.cantidad - 1)
+                        : null,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(border: Border.all(color: AppTheme.divider), borderRadius: BorderRadius.circular(8)),
+                        child: Icon(Icons.remove, size: 16, color: item.cantidad > 1 ? AppTheme.onBackground : AppTheme.divider),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text('${item.cantidad}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                    InkWell(
+                      onTap: () => context.read<CartProvider>().updateQuantity(item.productId, item.cantidad + 1),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(border: Border.all(color: AppTheme.divider), borderRadius: BorderRadius.circular(8)),
+                        child: const Icon(Icons.add, size: 16),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -147,7 +172,7 @@ class _CartSummary extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('${cart.itemCount} productos', style: Theme.of(context).textTheme.bodyMedium),
-              Text('Total: \$${cart.total.toStringAsFixed(2)}',
+              Text('Total: S/ ${cart.total.toStringAsFixed(2)}',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: AppTheme.primary)),
             ],
           ),

@@ -30,8 +30,8 @@ class AppTheme {
   static const Color info         = Color(0xFF2196F3); // Restored
 
   // Admin & Employee colors
-  static const Color adminPrimary = Color(0xFF37474F);
-  static const Color empPrimary   = Color(0xFF455A64);
+  static const Color adminPrimary = Color(0xFF5D4037); // Matched with primaryDark
+  static const Color empPrimary   = Color(0xFF8D6E63); // Matched with primary
 
   static ThemeData get lightTheme => ThemeData(
     useMaterial3: true,

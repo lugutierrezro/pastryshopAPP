@@ -174,7 +174,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Cuentas de prueba (contraseña: password123)',
+                                    Text('Cuentas de prueba (contraseña: password)',
                                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
                                     const SizedBox(height: 4),
                                     _demoTile('👤 Cliente',   'ana@email.com'),
@@ -211,7 +211,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   Widget _demoTile(String label, String email) => GestureDetector(
     onTap: () {
       _emailCtrl.text = email;
-      _passCtrl.text  = 'password123';
+      _passCtrl.text  = 'password';
     },
     child: Padding(
       padding: const EdgeInsets.only(top: 4),

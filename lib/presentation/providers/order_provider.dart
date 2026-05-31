@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:pastryshop/data/services/api_service.dart';
 import 'package:pastryshop/domain/entities/entities.dart';
+import 'package:pastryshop/core/constants/api_routes.dart';
 
 // ============================================================
 //  OrderProvider
@@ -12,6 +13,7 @@ class OrderProvider extends ChangeNotifier {
   bool    _loading = false;
   String? _error;
   String? _message;
+  bool _lastFetchAll = false;
 
   List<OrderEntity>     get orders  => _orders;
   OrderEntity?          get current => _current;
@@ -20,11 +22,15 @@ class OrderProvider extends ChangeNotifier {
   String?               get error   => _error;
   String?               get message => _message;
 
-  Future<void> fetchOrders({String? estado}) async {
+  Future<void> fetchOrders({String? estado, bool? all}) async {
     _loading = true; notifyListeners();
     try {
-      final q = estado != null ? {'estado': estado} : null;
-      final res = await ApiService.get('orders', auth: true, query: q);
+      if (all != null) _lastFetchAll = all;
+      final q = <String, String>{};
+      if (estado != null) q['estado'] = estado;
+      if (_lastFetchAll) q['all'] = '1';
+      
+      final res = await ApiService.get(ApiRoutes.orders, auth: true, query: q.isNotEmpty ? q : null);
       if (res['success'] == true) {
         _orders = (res['data'] as List).map((e) => OrderEntity.fromJson(e)).toList();
       }
@@ -34,15 +40,23 @@ class OrderProvider extends ChangeNotifier {
 
   Future<void> fetchOrder(int id) async {
     _loading = true; notifyListeners();
-    final res = await ApiService.get('orders/$id', auth: true);
-    if (res['success'] == true) _current = OrderEntity.fromJson(res['data']);
-    _loading = false; notifyListeners();
+    try {
+      final res = await ApiService.get(ApiRoutes.order('$id'), auth: true);
+      if (res['success'] == true) _current = OrderEntity.fromJson(res['data']);
+    } catch (e, stack) {
+      print('FETCH ORDER ERROR: $e');
+      print(stack);
+    } finally {
+      _loading = false; notifyListeners();
+    }
   }
 
   Future<bool> placeOrder({
     required String tipoEntrega,
     String? direccionEntrega,
     String? notas,
+    required String tipoComprobante,
+    required String documentoCliente,
   }) async {
     _loading = true; _error = null; notifyListeners();
     try {
@@ -50,8 +64,10 @@ class OrderProvider extends ChangeNotifier {
         'tipo_entrega': tipoEntrega,
         if (direccionEntrega != null) 'direccion_entrega': direccionEntrega,
         if (notas != null) 'notas': notas,
+        'tipo_comprobante': tipoComprobante,
+        'documento_cliente': documentoCliente,
       };
-      final res = await ApiService.post('orders', body, auth: true);
+      final res = await ApiService.post(ApiRoutes.orders, body, auth: true);
       if (res['success'] == true) {
         _message = res['message'];
         await fetchOrders();
@@ -68,7 +84,7 @@ class OrderProvider extends ChangeNotifier {
   }
 
   Future<bool> updateStatus(int orderId, String estado, {String? notas}) async {
-    final res = await ApiService.put('orders/$orderId/status', {
+    final res = await ApiService.put(ApiRoutes.orderStatus('$orderId'), {
       'estado': estado, if (notas != null) 'notas': notas,
     }, auth: true);
     if (res['success'] == true) { await fetchOrders(); return true; }
@@ -76,7 +92,7 @@ class OrderProvider extends ChangeNotifier {
   }
 
   Future<void> fetchSummary() async {
-    final res = await ApiService.get('orders/summary', auth: true);
+    final res = await ApiService.get(ApiRoutes.orderSummary, auth: true);
     if (res['success'] == true) { _summary = res['data']; notifyListeners(); }
   }
 }

@@ -4,8 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:badges/badges.dart' as badges;
 import 'package:pastryshop/core/theme/app_theme.dart';
+import 'package:pastryshop/core/constants/app_constants.dart';
 import 'package:pastryshop/presentation/providers/auth_provider.dart';
 import 'package:pastryshop/presentation/providers/cart_provider.dart';
+import 'package:pastryshop/presentation/providers/order_provider.dart';
 import 'package:pastryshop/presentation/providers/product_provider.dart';
 import 'package:pastryshop/presentation/widgets/product/product_card.dart';
 import 'package:pastryshop/presentation/widgets/common/category_chip.dart';
@@ -32,6 +34,11 @@ class _HomeScreenState extends State<HomeScreen> {
       pp.fetchCategories().catchError((_) {});
       pp.fetchProducts().catchError((_) {});
       pp.fetchProducts(featured: true).catchError((_) {});
+      
+      final auth = context.read<AuthProvider>();
+      if (auth.isLoggedIn) {
+        context.read<OrderProvider>().fetchOrders(all: false).catchError((_) {});
+      }
     });
   }
 
@@ -46,6 +53,12 @@ class _HomeScreenState extends State<HomeScreen> {
     final auth = context.watch<AuthProvider>();
     final cart = context.watch<CartProvider>();
     final pp   = context.watch<ProductProvider>();
+    final op   = context.watch<OrderProvider>();
+    
+    // Find active order (pendiente, preparando, listo)
+    final activeOrders = op.orders.where((o) => ['pendiente', 'preparando', 'listo'].contains(o.estado)).toList();
+    final hasActiveOrder = activeOrders.isNotEmpty;
+    final activeOrder = hasActiveOrder ? activeOrders.first : null;
 
     return Scaffold(
       body: CustomScrollView(
@@ -98,9 +111,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
                       ),
                       child: badges.Badge(
-                        badgeContent: Text('${cart.itemCount}', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                        position: badges.BadgePosition.topEnd(top: -5, end: -5),
                         showBadge: cart.itemCount > 0,
                         badgeStyle: const badges.BadgeStyle(badgeColor: AppTheme.primaryDark),
+                        badgeContent: Text('${cart.itemCount}', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
                         child: IconButton(
                           icon: const Icon(Icons.shopping_bag_outlined),
                           color: AppTheme.primaryDark,
@@ -130,29 +144,47 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // ---- Modern Search Pill ----
+          // ---- Modern Search Pill & Filter ----
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(30),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 15, offset: const Offset(0, 5))],
-                ),
-                child: TextField(
-                  controller: _searchCtrl,
-                  decoration: InputDecoration(
-                    hintText: 'Buscar delicias...',
-                    prefixIcon: const Icon(Icons.search, color: AppTheme.primaryDark),
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    fillColor: Colors.transparent,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(30),
+                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 15, offset: const Offset(0, 5))],
+                      ),
+                      child: TextField(
+                        controller: _searchCtrl,
+                        decoration: InputDecoration(
+                          hintText: 'Buscar delicias...',
+                          prefixIcon: const Icon(Icons.search, color: AppTheme.primaryDark),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          fillColor: Colors.transparent,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                        ),
+                        onChanged: (v) => pp.setSearch(v),
+                      ),
+                    ),
                   ),
-                  onChanged: (v) => pp.setSearch(v),
-                ),
+                  const SizedBox(width: 12),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryDark,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [BoxShadow(color: AppTheme.primaryDark.withValues(alpha: 0.3), blurRadius: 10, offset: const Offset(0, 4))],
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.tune, color: Colors.white),
+                      onPressed: () => _showFilterSheet(context, pp),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -194,9 +226,24 @@ class _HomeScreenState extends State<HomeScreen> {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(24, 20, 24, 10),
-              child: Text(
-                pp.selectedCategory == null ? 'Selección Exclusiva' : 'Productos',
-                style: Theme.of(context).textTheme.headlineMedium,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    pp.selectedCategory == null ? 'Selección Exclusiva' : 'Productos',
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
+                  if (pp.selectedCategory == null)
+                    TextButton.icon(
+                      onPressed: () => context.push('/custom-order'),
+                      icon: const Icon(Icons.cake, color: AppTheme.primaryDark),
+                      label: const Text('Arma tu Pastel', style: TextStyle(color: AppTheme.primaryDark, fontWeight: FontWeight.bold)),
+                      style: TextButton.styleFrom(
+                        backgroundColor: AppTheme.primaryLight.withOpacity(0.2),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
@@ -233,9 +280,44 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
-          const SliverToBoxAdapter(child: SizedBox(height: 40)),
+          const SliverToBoxAdapter(child: SizedBox(height: 100)), // Space for the floating widget
         ],
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: activeOrder != null
+          ? Container(
+              margin: const EdgeInsets.symmetric(horizontal: 24),
+              width: double.infinity,
+              child: FloatingActionButton.extended(
+                onPressed: () => context.push('/orders/${activeOrder.id}'),
+                backgroundColor: AppTheme.primaryDark,
+                elevation: 8,
+                label: Row(
+                  children: [
+                    const Icon(Icons.delivery_dining, color: Colors.white, size: 28),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('Sigue tu pedido', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                        Text('Estado: ${AppConstants.orderStateLabels[activeOrder.estado]}', style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12)),
+                      ],
+                    ),
+                    const SizedBox(width: 24),
+                    const Icon(Icons.chevron_right, color: Colors.white),
+                  ],
+                ),
+              ),
+            )
+          : auth.isLoggedIn
+              ? FloatingActionButton.extended(
+                  onPressed: () => context.push('/orders'),
+                  icon: const Icon(Icons.receipt_long, color: AppTheme.primaryDark),
+                  label: const Text('Mis Pedidos', style: TextStyle(color: AppTheme.primaryDark, fontWeight: FontWeight.bold)),
+                  backgroundColor: Colors.white,
+                )
+              : null,
     );
   }
 
@@ -273,6 +355,107 @@ class _HomeScreenState extends State<HomeScreen> {
     items.add(const PopupMenuDivider());
     items.add(const PopupMenuItem(value: 'logout', child: ListTile(leading: Icon(Icons.logout, color: Colors.red), title: Text('Cerrar sesión', style: TextStyle(color: Colors.red)))));
     return items;
+  }
+
+  void _showFilterSheet(BuildContext context, ProductProvider pp) {
+    double minPrice = pp.minPrice ?? 0;
+    double maxPrice = pp.maxPrice ?? 200;
+    String sortOrder = pp.sortOrder;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Container(
+              padding: const EdgeInsets.all(24),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40, height: 5,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(color: AppTheme.divider, borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                  Text('Filtros', style: Theme.of(context).textTheme.headlineMedium),
+                  const SizedBox(height: 20),
+                  Text('Rango de precio: S/ ${minPrice.toInt()} - S/ ${maxPrice.toInt()}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  RangeSlider(
+                    values: RangeValues(minPrice, maxPrice),
+                    min: 0, max: 200, divisions: 40,
+                    activeColor: AppTheme.primaryDark,
+                    labels: RangeLabels('S/ ${minPrice.toInt()}', 'S/ ${maxPrice.toInt()}'),
+                    onChanged: (v) => setState(() { minPrice = v.start; maxPrice = v.end; }),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text('Ordenar por', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 10,
+                    children: [
+                      ChoiceChip(
+                        label: const Text('Relevancia'),
+                        selected: sortOrder == 'none',
+                        onSelected: (s) { if (s) setState(() => sortOrder = 'none'); },
+                        selectedColor: AppTheme.primaryDark.withOpacity(0.2),
+                      ),
+                      ChoiceChip(
+                        label: const Text('Precio: Menor a Mayor'),
+                        selected: sortOrder == 'asc',
+                        onSelected: (s) { if (s) setState(() => sortOrder = 'asc'); },
+                        selectedColor: AppTheme.primaryDark.withOpacity(0.2),
+                      ),
+                      ChoiceChip(
+                        label: const Text('Precio: Mayor a Menor'),
+                        selected: sortOrder == 'desc',
+                        onSelected: (s) { if (s) setState(() => sortOrder = 'desc'); },
+                        selectedColor: AppTheme.primaryDark.withOpacity(0.2),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 30),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            pp.setFilter(min: null, max: null);
+                            pp.setSort('none');
+                            Navigator.pop(ctx);
+                          },
+                          child: const Text('Limpiar'),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            pp.setFilter(min: minPrice, max: maxPrice);
+                            pp.setSort(sortOrder);
+                            Navigator.pop(ctx);
+                          },
+                          child: const Text('Aplicar'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 }
 
@@ -346,7 +529,7 @@ class _FeaturedBanner extends StatelessWidget {
                       children: [
                         Text(p.nombre, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, height: 1.1)),
                         const SizedBox(height: 8),
-                        Text('\$${p.precio.toStringAsFixed(2)}', style: const TextStyle(color: AppTheme.secondary, fontSize: 18, fontWeight: FontWeight.w600)),
+                        Text('S/ ${p.precio.toStringAsFixed(2)}', style: const TextStyle(color: AppTheme.secondary, fontSize: 18, fontWeight: FontWeight.w600)),
                       ],
                     ),
                   ),

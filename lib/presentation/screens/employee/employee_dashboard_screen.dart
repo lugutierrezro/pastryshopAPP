@@ -17,7 +17,7 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => context.read<OrderProvider>().fetchOrders());
+    WidgetsBinding.instance.addPostFrameCallback((_) => context.read<OrderProvider>().fetchOrders(all: true));
   }
 
   @override
@@ -56,7 +56,7 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
                       ],
                     ),
                     trailing: _StatusBadge(status: o.estado),
-                    onTap: () => context.push('/orders/${o.id}'),
+                    onTap: () => context.push('/admin/orders/${o.id}'),
                   ),
                 );
               },
