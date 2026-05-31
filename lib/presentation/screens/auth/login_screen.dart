@@ -201,7 +201,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                     )
                                   );
                                 },
-                                icon: Image.network('https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg', width: 24, height: 24),
+                                icon: Container(
+                                  width: 24, height: 24,
+                                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                                  alignment: Alignment.center,
+                                  child: const Text('G', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.w900, fontSize: 18)),
+                                ),
                                 label: const Text('Continuar con Google', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
                                 style: OutlinedButton.styleFrom(
                                   padding: const EdgeInsets.symmetric(vertical: 14),
