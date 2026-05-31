@@ -19,6 +19,7 @@ class ProductDetailScreen extends StatefulWidget {
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   int _cantidad = 1;
+  final _notesCtrl = TextEditingController();
 
   @override
   void initState() {
@@ -28,8 +29,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     });
   }
 
+  @override
+  void dispose() {
+    _notesCtrl.dispose();
+    super.dispose();
+  }
+
   void _addToCart(product) {
-    context.read<CartProvider>().addItem(product.id, _cantidad);
+    Map<String, dynamic>? options;
+    if (_notesCtrl.text.trim().isNotEmpty) {
+      options = {'notas': _notesCtrl.text.trim()};
+    }
+    context.read<CartProvider>().addItem(product.id, _cantidad, options: options);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: const Text('✅ Agregado al carrito', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       backgroundColor: AppTheme.success,
@@ -206,6 +217,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           const SizedBox(height: 24),
                           
                           if (p.stock > 0) ...[
+                            const Text('Opciones y Notas Especiales', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller: _notesCtrl,
+                              maxLines: 2,
+                              decoration: InputDecoration(
+                                hintText: 'Ej. Mensaje en la torta, sin maní...',
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                contentPadding: const EdgeInsets.all(12),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
                             const Text('Cantidad', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 12),
                             Row(

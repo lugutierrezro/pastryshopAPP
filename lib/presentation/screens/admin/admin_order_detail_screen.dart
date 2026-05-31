@@ -241,6 +241,21 @@ class _AdminOrderDetailScreenState extends State<AdminOrderDetailScreen> {
                           Text(item.producto, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                           const SizedBox(height: 4),
                           Text('S/ ${item.precioUnit.toStringAsFixed(2)} c/u', style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
+                          if (item.opcionesPersonalizadas != null && item.opcionesPersonalizadas!['notas'] != null) ...[
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(6)),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Icon(Icons.edit_note, size: 14, color: Colors.orange),
+                                  const SizedBox(width: 4),
+                                  Expanded(child: Text(item.opcionesPersonalizadas!['notas'], style: const TextStyle(color: Colors.orange, fontSize: 12, fontStyle: FontStyle.italic))),
+                                ],
+                              ),
+                            )
+                          ],
                         ],
                       ),
                     ),

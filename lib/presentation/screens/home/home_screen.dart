@@ -222,6 +222,36 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
+          // ---- Verification Banner ----
+          if (auth.isLoggedIn && auth.user != null && !auth.user!.isVerified)
+            SliverToBoxAdapter(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text('Tu correo no está verificado. Por favor, verifica tu cuenta para realizar pedidos.', style: TextStyle(color: Colors.orange, fontSize: 12)),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        // In a real app this would call the /auth/resend-verification endpoint
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Correo de verificación enviado')));
+                      },
+                      child: const Text('Reenviar'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
           // ---- Featured Banner (Parallax/Glass) ----
           if (pp.selectedCategory == null && _searchCtrl.text.isEmpty)
             SliverToBoxAdapter(child: _FeaturedBanner(featured: pp.featured)),

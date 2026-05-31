@@ -148,6 +148,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 : const Text('Crear cuenta'),
                             ),
                             const SizedBox(height: 16),
+                            // Google Auth Button
+                            OutlinedButton.icon(
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Firebase no está configurado. Falta google-services.json.'),
+                                    backgroundColor: Colors.orange,
+                                    duration: Duration(seconds: 4),
+                                  )
+                                );
+                              },
+                              icon: Image.network('https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg', width: 24, height: 24),
+                              label: const Text('Registrarse con Google', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold)),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                side: BorderSide(color: Colors.grey.shade300),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
