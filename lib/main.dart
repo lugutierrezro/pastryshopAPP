@@ -16,13 +16,16 @@ import 'presentation/providers/favorite_provider.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
   } catch (e) {
-    if (kDebugMode) print('Firebase init error (likely missing options for web): $e');
+    if (kDebugMode) print('Firebase init error: $e');
   }
   
   final authProvider = AuthProvider();

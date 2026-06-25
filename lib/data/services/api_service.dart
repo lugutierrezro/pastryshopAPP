@@ -15,7 +15,11 @@ class ApiService {
   }
 
   static Future<Map<String, String>> _headers({bool auth = false}) async {
-    final h = {'Content-Type': 'application/json', 'Accept': 'application/json'};
+    final h = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'ngrok-skip-browser-warning': 'true',
+    };
     if (auth) {
       final token = await _getToken();
       if (token != null) h['Authorization'] = 'Bearer $token';
@@ -65,6 +69,7 @@ class ApiService {
     final uri = Uri.parse('${AppConstants.apiUrl}/$path');
     final req = http.MultipartRequest('POST', uri);
     
+    req.headers['ngrok-skip-browser-warning'] = 'true';
     if (auth) {
       final token = await _getToken();
       if (token != null) req.headers['Authorization'] = 'Bearer $token';

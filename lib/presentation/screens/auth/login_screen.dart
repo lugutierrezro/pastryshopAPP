@@ -194,14 +194,50 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                               OutlinedButton.icon(
                                 onPressed: auth.loading ? null : () async {
                                   final ok = await auth.signInWithGoogle();
-                                  if (ok && mounted) {
+                                  if (!mounted) return;
+                                  
+                                  if (ok) {
                                     await context.read<CartProvider>().fetchCart();
-                                    if (auth.isAdmin) { context.go('/admin'); return; }
-                                    if (auth.isEmpleado) { context.go('/employee'); return; }
-                                    context.go('/');
-                                  } else if (!ok && mounted && auth.error != null) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text(auth.error!), backgroundColor: AppTheme.error),
+                                    if (!mounted) return;
+                                    
+                                    showDialog(
+                                      context: context,
+                                      barrierDismissible: false,
+                                      builder: (ctx) => AlertDialog(
+                                        title: const Text('¡Inicio de sesión exitoso!'),
+                                        content: Text('Usuario: ${auth.user?.fullName}\nEmail: ${auth.user?.email}\nRol: ${auth.user?.rol}'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () {
+                                              Navigator.pop(ctx);
+                                              if (auth.isAdmin) { context.go('/admin'); return; }
+                                              if (auth.isEmpleado) { context.go('/employee'); return; }
+                                              context.go('/');
+                                            },
+                                            child: const Text('Aceptar'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  } else {
+                                    showDialog(
+                                      context: context,
+                                      barrierDismissible: false,
+                                      builder: (ctx) => AlertDialog(
+                                        title: const Text('Inicio de sesión falló'),
+                                        content: Text('Error: ${auth.error}\n\nDatos de Google recuperados: ${auth.googleUserData}'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () {
+                                              Navigator.pop(ctx);
+                                              if (auth.googleUserData != null) {
+                                                context.pushReplacement('/register', extra: auth.googleUserData);
+                                              }
+                                            },
+                                            child: const Text('Aceptar'),
+                                          ),
+                                        ],
+                                      ),
                                     );
                                   }
                                 },

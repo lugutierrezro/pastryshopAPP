@@ -15,11 +15,13 @@ class AuthProvider extends ChangeNotifier {
   String?     _token;
   bool        _loading = false;
   String?     _error;
+  Map<String, String>? _googleUserData;
 
   UserEntity? get user    => _user;
   String?     get token   => _token;
   bool        get loading => _loading;
   String?     get error   => _error;
+  Map<String, String>? get googleUserData => _googleUserData;
   bool        get isLoggedIn => _user != null;
   bool        get isAdmin    => _user?.isAdmin  ?? false;
   bool        get isEmpleado => _user?.isEmpleado ?? false;
@@ -27,7 +29,10 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> init() async {
     try {
-      await GoogleSignIn.instance.initialize();
+      await GoogleSignIn.instance.initialize(
+        clientId: AppConstants.googleServerClientId,
+        serverClientId: AppConstants.googleServerClientId,
+      );
     } catch (e) {
       if (kDebugMode) print('GoogleSignIn init error: $e');
     }
@@ -43,16 +48,26 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<bool> signInWithGoogle() async {
-    _loading = true; _error = null; notifyListeners();
+    _loading = true; _error = null; _googleUserData = null; notifyListeners();
     try {
       final account = await GoogleSignIn.instance.authenticate();
+      if (account == null) {
+        _loading = false;
+        notifyListeners();
+        return false;
+      }
       
       final auth = await account.authentication;
+      final displayName = account.displayName ?? '';
+      final names = displayName.split(' ');
+      final nombre = names.isNotEmpty ? names.first : 'Usuario';
+      final apellido = names.length > 1 ? names.skip(1).join(' ') : '';
+
       final body = {
         'token': auth.idToken ?? 'mock_token',
         'email': account.email,
-        'nombre': account.displayName?.split(' ').first ?? 'Usuario',
-        'apellido': account.displayName?.split(' ').skip(1).join(' ') ?? '',
+        'nombre': nombre,
+        'apellido': apellido,
         'provider_id': account.id,
       };
 
@@ -60,16 +75,27 @@ class AuthProvider extends ChangeNotifier {
       if (res['success'] == true) {
         _token = res['data']['token'];
         _user  = UserEntity.fromJson(res['data']['user']);
+        _googleUserData = null;
         await _persist();
         return true;
       }
-      _error = res['message'] ?? 'Error al iniciar sesión con Google';
+      
+      // El servidor respondió pero no fue exitoso (usuario no registrado)
+      _googleUserData = {
+        'email': account.email,
+        'nombre': nombre,
+        'apellido': apellido,
+      };
+      
+      final statusCode = res['_statusCode'];
+      _error = 'Error de API (Status $statusCode): ${res['message'] ?? res}';
       return false;
     } catch (e) {
+      _googleUserData = null;
       if (e is GoogleSignInException && e.code == GoogleSignInExceptionCode.canceled) {
         _error = 'Autenticación cancelada';
       } else {
-        _error = 'Error de conexión con Google: $e';
+        _error = 'Error de conexión: $e';
       }
       return false;
     } finally {

@@ -8,21 +8,39 @@ import 'package:pastryshop/presentation/providers/auth_provider.dart';
 //  RegisterScreen
 // ============================================================
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+  final String? initialEmail;
+  final String? initialNombre;
+  final String? initialApellido;
+
+  const RegisterScreen({
+    super.key,
+    this.initialEmail,
+    this.initialNombre,
+    this.initialApellido,
+  });
+
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey      = GlobalKey<FormState>();
-  final _nombreCtrl   = TextEditingController();
-  final _apellidoCtrl = TextEditingController();
-  final _emailCtrl    = TextEditingController();
+  late final TextEditingController _nombreCtrl;
+  late final TextEditingController _apellidoCtrl;
+  late final TextEditingController _emailCtrl;
   final _telCtrl      = TextEditingController();
   final _dirCtrl      = TextEditingController();
   final _passCtrl     = TextEditingController();
   final _pass2Ctrl    = TextEditingController();
   bool _obscure = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _nombreCtrl   = TextEditingController(text: widget.initialNombre);
+    _apellidoCtrl = TextEditingController(text: widget.initialApellido);
+    _emailCtrl    = TextEditingController(text: widget.initialEmail);
+  }
 
   @override
   void dispose() {
@@ -152,11 +170,49 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             OutlinedButton.icon(
                               onPressed: auth.loading ? null : () async {
                                 final ok = await auth.signInWithGoogle();
-                                if (ok && mounted) {
-                                  context.go('/');
-                                } else if (!ok && mounted && auth.error != null) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text(auth.error!), backgroundColor: AppTheme.error),
+                                if (!mounted) return;
+                                
+                                if (ok) {
+                                  showDialog(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (ctx) => AlertDialog(
+                                      title: const Text('¡Inicio de sesión exitoso!'),
+                                      content: Text('Usuario: ${auth.user?.fullName}\nEmail: ${auth.user?.email}\nRol: ${auth.user?.rol}'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () {
+                                            Navigator.pop(ctx);
+                                            context.go('/');
+                                          },
+                                          child: const Text('Aceptar'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                } else {
+                                  showDialog(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (ctx) => AlertDialog(
+                                      title: const Text('Inicio de sesión falló'),
+                                      content: Text('Error: ${auth.error}\n\nDatos de Google recuperados: ${auth.googleUserData}'),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () {
+                                            Navigator.pop(ctx);
+                                            if (auth.googleUserData != null) {
+                                              setState(() {
+                                                _nombreCtrl.text = auth.googleUserData!['nombre'] ?? '';
+                                                _apellidoCtrl.text = auth.googleUserData!['apellido'] ?? '';
+                                                _emailCtrl.text = auth.googleUserData!['email'] ?? '';
+                                              });
+                                            }
+                                          },
+                                          child: const Text('Aceptar'),
+                                        ),
+                                      ],
+                                    ),
                                   );
                                 }
                               },

@@ -71,11 +71,11 @@ class AppTheme {
       ),
     ),
     
-    cardTheme: CardTheme(
+    cardTheme: const CardThemeData(
       color: surface,
       elevation: 8,
-      shadowColor: Colors.black.withValues(alpha: 0.08),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      shadowColor: Colors.black12,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(24))),
       margin: EdgeInsets.zero,
     ),
     

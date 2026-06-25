@@ -3,11 +3,15 @@
 // ============================================================
 class AppConstants {
   // ---- API ----
-  static const String baseUrl = 'http://127.0.0.1/pastryshop_api'; // Para Web/Desktop (fuerza IPv4)
+  static const String baseUrl = 'https://pang-reprogram-pyramid.ngrok-free.dev/pastryshop_api';
   // Para emulador Android usa: 'http://10.0.2.2/pastryshop_api'
   // Para dispositivo físico en la misma red: 'http://192.168.1.x/pastryshop_api'
 
   static const String apiUrl = '$baseUrl';
+
+  // ---- Google Sign-In ----
+  // Coloca tu "Web Client ID" (Client ID de tipo 3 de Firebase/Google Cloud Console) aquí:
+  static const String? googleServerClientId = '989250255492-ntij8tr004o3dd767cmm2ff97uc2st3b.apps.googleusercontent.com';
 
   // ---- Storage keys ----
   static const String tokenKey    = 'auth_token';

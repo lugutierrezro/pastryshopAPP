@@ -40,9 +40,13 @@ import 'package:pastryshop/presentation/screens/employee/employee_dashboard_scre
 //  App Router — GoRouter with role-based redirects
 // ============================================================
 class AppRouter {
-  static GoRouter router(AuthProvider auth) => GoRouter(
-    initialLocation: '/',
-    redirect: (context, state) {
+  static GoRouter? _router;
+
+  static GoRouter router(AuthProvider auth) {
+    _router ??= GoRouter(
+      initialLocation: '/',
+      refreshListenable: auth,
+      redirect: (context, state) {
       final loggedIn = auth.isLoggedIn;
       final path     = state.matchedLocation;
 
@@ -68,7 +72,17 @@ class AppRouter {
         ],
       ),
       GoRoute(path: '/login',        builder: (_, __) => const LoginScreen()),
-      GoRoute(path: '/register',     builder: (_, __) => const RegisterScreen()),
+      GoRoute(
+        path: '/register',
+        builder: (_, state) {
+          final extra = state.extra as Map<String, String>?;
+          return RegisterScreen(
+            initialEmail: extra?['email'],
+            initialNombre: extra?['nombre'],
+            initialApellido: extra?['apellido'],
+          );
+        },
+      ),
       GoRoute(path: '/product/:id',  builder: (_, s) => ProductDetailScreen(id: int.parse(s.pathParameters['id']!))),
       GoRoute(path: '/cart',         builder: (_, __) => const CartScreen()),
       GoRoute(path: '/checkout',     builder: (_, __) => const CheckoutScreen()),
@@ -123,4 +137,6 @@ class AppRouter {
       GoRoute(path: '/employee', builder: (_, __) => const EmployeeDashboardScreen()),
     ],
   );
+  return _router!;
+}
 }
