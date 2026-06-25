@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -9,6 +10,7 @@ import 'package:pastryshop/core/theme/app_theme.dart';
 import 'package:pastryshop/presentation/providers/auth_provider.dart';
 import 'package:pastryshop/presentation/providers/cart_provider.dart';
 import 'package:pastryshop/presentation/providers/order_provider.dart';
+import 'package:pastryshop/domain/entities/entities.dart';
 
 // ============================================================
 //  CheckoutScreen
@@ -25,6 +27,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final _dirCtrl   = TextEditingController();
   final _notasCtrl = TextEditingController();
   
+  // Customer Data Controllers (P-10)
+  final _nombreCtrl = TextEditingController();
+  final _apellidoCtrl = TextEditingController();
+  final _telefonoCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+
   String _tipoComprobante = 'boleta';
   final _docCtrl = TextEditingController();
   
@@ -33,12 +41,25 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   LatLng _selectedLocation = const LatLng(-12.0464, -77.0428); // Lima
   bool _isLoadingAddress = false;
 
+  // Autocomplete State
+  List<dynamic> _addressSuggestions = [];
+  bool _isSearchingAddress = false;
+  Timer? _debounce;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = context.read<AuthProvider>();
-      if (!auth.isLoggedIn) context.pushReplacement('/login');
+      if (!auth.isLoggedIn) {
+        context.pushReplacement('/login');
+      } else {
+        final u = auth.user!;
+        _nombreCtrl.text = u.nombre;
+        _apellidoCtrl.text = u.apellido;
+        _telefonoCtrl.text = u.telefono;
+        _emailCtrl.text = u.email;
+      }
       
       final cart = context.read<CartProvider>();
       if (cart.customNotes != null) {
@@ -51,7 +72,56 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   void dispose() {
     _dirCtrl.dispose();
     _notasCtrl.dispose();
+    _nombreCtrl.dispose();
+    _apellidoCtrl.dispose();
+    _telefonoCtrl.dispose();
+    _emailCtrl.dispose();
+    _debounce?.cancel();
     super.dispose();
+  }
+
+  void _onAddressChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      _searchAddress(query);
+    });
+  }
+
+  Future<void> _searchAddress(String query) async {
+    if (query.trim().length < 3) {
+      setState(() => _addressSuggestions = []);
+      return;
+    }
+    setState(() => _isSearchingAddress = true);
+    try {
+      final url = Uri.parse('https://nominatim.openstreetmap.org/search?format=json&q=${Uri.encodeComponent(query)}&limit=5');
+      final response = await http.get(url, headers: {'User-Agent': 'PastryShopApp/1.0'});
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data is List) {
+          setState(() {
+            _addressSuggestions = data;
+          });
+        }
+      }
+    } catch (_) {
+      // Ignore
+    } finally {
+      if (mounted) setState(() => _isSearchingAddress = false);
+    }
+  }
+
+  void _selectSuggestion(dynamic suggestion) {
+    final lat = double.tryParse(suggestion['lat'].toString()) ?? -12.0464;
+    final lon = double.tryParse(suggestion['lon'].toString()) ?? -77.0428;
+    final displayName = suggestion['display_name'] ?? '';
+    
+    setState(() {
+      _selectedLocation = LatLng(lat, lon);
+      _dirCtrl.text = displayName;
+      _addressSuggestions = [];
+    });
+    _mapCtrl.move(_selectedLocation, 15.0);
   }
 
   Future<void> _getAddressFromLatLng(LatLng pos) async {
@@ -107,9 +177,26 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _placeOrder() async {
+    final auth   = context.read<AuthProvider>();
     final orders = context.read<OrderProvider>();
     final cart   = context.read<CartProvider>();
-    final ok     = await orders.placeOrder(
+
+    // Update profile if details changed (P-10)
+    final u = auth.user;
+    if (u != null) {
+      final newNombre   = _nombreCtrl.text.trim();
+      final newApellido = _apellidoCtrl.text.trim();
+      final newTelefono = _telefonoCtrl.text.trim();
+      if (newNombre != u.nombre || newApellido != u.apellido || newTelefono != u.telefono) {
+        await auth.updateProfile({
+          'nombre': newNombre,
+          'apellido': newApellido,
+          'telefono': newTelefono,
+        });
+      }
+    }
+
+    final orderId = await orders.placeOrder(
       tipoEntrega: _tipo,
       direccionEntrega: _tipo == 'domicilio' ? _dirCtrl.text.trim() : null,
       notas: _notasCtrl.text.trim().isEmpty ? null : _notasCtrl.text.trim(),
@@ -117,32 +204,28 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       documentoCliente: _docCtrl.text.trim(),
     );
     if (!mounted) return;
-    if (ok) {
+    if (orderId != null) {
       cart.clearLocal();
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('🎉', style: TextStyle(fontSize: 64)),
-              const SizedBox(height: 16),
-              const Text('¡Pago Exitoso!', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              Text('Tu pedido está en proceso. Recibirás actualizaciones sobre su estado.',
-                textAlign: TextAlign.center, style: TextStyle(color: AppTheme.textSecondary)),
-            ],
-          ),
-          actions: [
-            ElevatedButton(
-              onPressed: () { Navigator.pop(context); context.go('/orders'); },
-              child: const Text('Ver mis pedidos'),
-            ),
-          ],
+      // Find the placed order or construct a fallback entity representing it
+      final placedOrder = orders.orders.firstWhere(
+        (o) => o.id == orderId,
+        orElse: () => OrderEntity(
+          id: orderId,
+          userId: u?.id ?? 0,
+          cliente: u?.fullName ?? '',
+          email: u?.email ?? '',
+          telefono: _telefonoCtrl.text.trim(),
+          estado: 'pendiente',
+          total: cart.total,
+          tipoEntrega: _tipo,
+          direccionEntrega: _tipo == 'domicilio' ? _dirCtrl.text.trim() : '',
+          notas: _notasCtrl.text.trim(),
+          tipoComprobante: _tipoComprobante,
+          documentoCliente: _docCtrl.text.trim(),
+          createdAt: DateTime.now().toIso8601String(),
         ),
       );
+      context.pushReplacement('/payment-success', extra: placedOrder);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(orders.error ?? 'Error'), backgroundColor: AppTheme.error),
@@ -195,6 +278,53 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ],
               ),
               const SizedBox(height: 28),
+              Text('Datos del Cliente', style: Theme.of(context).textTheme.headlineMedium),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _nombreCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Nombre',
+                        prefixIcon: Icon(Icons.person_outline),
+                      ),
+                      validator: (v) => v == null || v.trim().isEmpty ? 'Requerido' : null,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _apellidoCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Apellido',
+                        prefixIcon: Icon(Icons.person_outline),
+                      ),
+                      validator: (v) => v == null || v.trim().isEmpty ? 'Requerido' : null,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _emailCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Correo Electrónico',
+                  prefixIcon: Icon(Icons.email_outlined),
+                ),
+                readOnly: true,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _telefonoCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Teléfono',
+                  prefixIcon: Icon(Icons.phone_outlined),
+                ),
+                keyboardType: TextInputType.phone,
+                validator: (v) => v == null || v.trim().isEmpty ? 'Requerido' : null,
+              ),
+              const SizedBox(height: 28),
 
               // Delivery type
               Text('Tipo de entrega', style: Theme.of(context).textTheme.headlineMedium),
@@ -207,7 +337,46 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
               if (_tipo == 'domicilio') ...[
                 const SizedBox(height: 16),
-                const Text('Ubica tu dirección en el mapa:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text('Escribe tu dirección para buscarla:', style: TextStyle(fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _dirCtrl,
+                  decoration: InputDecoration(
+                    labelText: 'Dirección de entrega',
+                    prefixIcon: const Icon(Icons.location_on_outlined),
+                    suffixIcon: _isSearchingAddress
+                        ? const SizedBox(width: 20, height: 20, child: Padding(padding: EdgeInsets.all(12), child: CircularProgressIndicator(strokeWidth: 2)))
+                        : (_dirCtrl.text.isNotEmpty ? IconButton(icon: const Icon(Icons.clear), onPressed: () => setState(() { _dirCtrl.clear(); _addressSuggestions = []; })) : null),
+                  ),
+                  onChanged: _onAddressChanged,
+                  validator: (v) => _tipo == 'domicilio' && (v == null || v.isEmpty) ? 'Ingresa o selecciona una dirección' : null,
+                ),
+                if (_addressSuggestions.isNotEmpty)
+                  Container(
+                    margin: const EdgeInsets.only(top: 8, bottom: 8),
+                    constraints: const BoxConstraints(maxHeight: 200),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 10)],
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: _addressSuggestions.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final item = _addressSuggestions[index];
+                        return ListTile(
+                          leading: const Icon(Icons.location_on, color: AppTheme.primaryDark),
+                          title: Text(item['display_name'] ?? '', style: const TextStyle(fontSize: 13)),
+                          onTap: () => _selectSuggestion(item),
+                        );
+                      },
+                    ),
+                  ),
+                const SizedBox(height: 16),
+                const Text('Confirma la ubicación en el mapa (puedes mover el pin tocando el mapa):', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                 const SizedBox(height: 8),
                 Container(
                   height: 200,
@@ -256,15 +425,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       )
                     ],
                   ),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _dirCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Dirección de entrega',
-                    prefixIcon: Icon(Icons.location_on_outlined),
-                  ),
-                  validator: (v) => _tipo == 'domicilio' && (v == null || v.isEmpty) ? 'Ingresa o selecciona una dirección' : null,
                 ),
               ],
 

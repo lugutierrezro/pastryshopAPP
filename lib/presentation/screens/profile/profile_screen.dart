@@ -112,7 +112,7 @@ class ProfileScreen extends StatelessWidget {
                 icon: Icons.help_outline,
                 title: 'Ayuda y Soporte',
                 subtitle: 'Preguntas frecuentes y contacto',
-                onTap: () {},
+                onTap: () => context.push('/contact'),
               ),
             ]),
 

@@ -3,8 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:pastryshop/core/theme/app_theme.dart';
+import 'package:pastryshop/presentation/providers/auth_provider.dart';
 import 'package:pastryshop/presentation/providers/cart_provider.dart';
 import 'package:pastryshop/presentation/providers/product_provider.dart';
+import 'package:pastryshop/presentation/providers/review_provider.dart';
+import 'package:pastryshop/presentation/widgets/product/review_widgets.dart';
 
 // ============================================================
 //  ProductDetailScreen — Premium Redesign
@@ -28,6 +31,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ProductProvider>().fetchProduct(widget.id);
+      context.read<ReviewProvider>().fetchReviews(widget.id);
     });
   }
 
@@ -119,6 +123,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final pp = context.watch<ProductProvider>();
+    final rp = context.watch<ReviewProvider>();
+    final auth = context.watch<AuthProvider>();
     final p = pp.selected;
 
     if (pp.loading || p == null) {
@@ -280,9 +286,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             children: [
                               const Icon(Icons.star, color: Colors.orange, size: 18),
                               const SizedBox(width: 4),
-                              const Text('4.9', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                              Text(
+                                rp.total > 0 ? rp.promedio.toStringAsFixed(1) : '—',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                              ),
                               const SizedBox(width: 8),
-                              Text('(128 reseñas)', style: TextStyle(color: AppTheme.textSecondary.withValues(alpha: 0.7), fontSize: 14)),
+                              Text(
+                                rp.total > 0 ? '(${rp.total} reseñas)' : 'Sin reseñas',
+                                style: TextStyle(color: AppTheme.textSecondary.withValues(alpha: 0.7), fontSize: 14),
+                              ),
                               const Spacer(),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -383,6 +395,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                               ),
                             ),
                             
+                          const SizedBox(height: 32),
+
+                          // ── Sección de reseñas (P-24, P-25, P-26) ─────────
+                          const _ReviewsSection(),
+
                           const SizedBox(height: 100), // spacing for bottom bar
                         ],
                       ),
@@ -460,3 +477,255 @@ class _QuantityButton extends StatelessWidget {
     );
   }
 }
+
+class _ReviewsSection extends StatefulWidget {
+  const _ReviewsSection();
+
+  @override
+  State<_ReviewsSection> createState() => _ReviewsSectionState();
+}
+
+class _ReviewsSectionState extends State<_ReviewsSection> {
+  final _commentCtrl = TextEditingController();
+  int _userRating = 5;
+
+  @override
+  void dispose() {
+    _commentCtrl.dispose();
+    super.dispose();
+  }
+
+  void _submitReview(int productId, ReviewProvider provider) async {
+    final comment = _commentCtrl.text.trim();
+    if (comment.length < 5) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('El comentario debe tener al menos 5 caracteres.')),
+      );
+      return;
+    }
+
+    final success = await provider.postReview(
+      productId: productId,
+      calificacion: _userRating,
+      comentario: comment,
+    );
+
+    if (success) {
+      _commentCtrl.clear();
+      setState(() => _userRating = 5);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Reseña publicada con éxito.')),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(provider.error ?? 'Error al publicar la reseña.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final productProvider = context.watch<ProductProvider>();
+    final product = productProvider.selected;
+    if (product == null) return const SizedBox.shrink();
+
+    final reviewProvider = context.watch<ReviewProvider>();
+    final authProvider = context.watch<AuthProvider>();
+    final user = authProvider.user;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Opiniones del Producto',
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.primaryDark),
+        ),
+        const SizedBox(height: 16),
+        
+        // Average and distribution summary
+        if (reviewProvider.reviews.isNotEmpty)
+          ReviewSummaryBar(
+            promedio: reviewProvider.promedio,
+            total: reviewProvider.total,
+            reviews: reviewProvider.reviews,
+          )
+        else
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.rate_review_outlined, color: Colors.grey),
+                SizedBox(width: 12),
+                Text(
+                  'Aún no hay opiniones para este producto.',
+                  style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic),
+                ),
+              ],
+            ),
+          ),
+        const SizedBox(height: 24),
+
+        // Review Submission Form
+        if (authProvider.isLoggedIn) ...[
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+              border: Border.all(color: AppTheme.primaryLight.withOpacity(0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Deja tu opinión',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.primaryDark),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Text('Calificación: ', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                    const SizedBox(width: 8),
+                    StarRatingWidget(
+                      value: _userRating,
+                      size: 28,
+                      onChanged: (val) {
+                        setState(() => _userRating = val);
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _commentCtrl,
+                  maxLines: 3,
+                  maxLength: 500,
+                  decoration: InputDecoration(
+                    hintText: 'Cuéntanos qué te pareció este producto...',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    contentPadding: const EdgeInsets.all(12),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ElevatedButton(
+                    onPressed: reviewProvider.loading
+                        ? null
+                        : () => _submitReview(product.id, reviewProvider),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryDark,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: reviewProvider.loading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Text('Publicar Reseña'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+        ] else ...[
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.lock_outline, color: Colors.grey, size: 20),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Inicia sesión para opinar sobre este producto.',
+                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+
+        // List of existing reviews
+        if (reviewProvider.reviews.isNotEmpty) ...[
+          const Text(
+            'Comentarios de clientes',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.primaryDark),
+          ),
+          const SizedBox(height: 12),
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: reviewProvider.reviews.length,
+            itemBuilder: (context, index) {
+              final r = reviewProvider.reviews[index];
+              final isOwnReview = user != null && r.userId == user.id;
+              final isAdmin = user != null && (user.rol == 'Super Admin' || user.rol == 'admin');
+              final canDelete = isOwnReview || isAdmin;
+
+              return ReviewCard(
+                review: r,
+                canDelete: canDelete,
+                onDelete: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Eliminar Reseña'),
+                      content: const Text('¿Estás seguro de que quieres eliminar tu opinión?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('Cancelar'),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text('Eliminar', style: TextStyle(color: AppTheme.error)),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirm == true) {
+                    final delSuccess = await reviewProvider.deleteReview(r.id, product.id);
+                    if (delSuccess) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Reseña eliminada.')),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Error al eliminar la reseña.')),
+                      );
+                    }
+                  }
+                },
+              );
+            },
+          ),
+        ],
+      ],
+    );
+  }
+}
+

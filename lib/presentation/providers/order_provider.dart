@@ -51,7 +51,7 @@ class OrderProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> placeOrder({
+  Future<int?> placeOrder({
     required String tipoEntrega,
     String? direccionEntrega,
     String? notas,
@@ -71,13 +71,14 @@ class OrderProvider extends ChangeNotifier {
       if (res['success'] == true) {
         _message = res['message'];
         await fetchOrders();
-        return true;
+        // Return the newly created order ID
+        return res['data'] != null ? res['data']['order_id'] as int? : null;
       }
       _error = res['message'];
-      return false;
+      return null;
     } catch (e) {
       _error = 'Error al crear pedido';
-      return false;
+      return null;
     } finally {
       _loading = false; notifyListeners();
     }

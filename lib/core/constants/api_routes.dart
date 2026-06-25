@@ -1,9 +1,11 @@
 class ApiRoutes {
   // Auth
-  static const String login = 'auth/login';
-  static const String register = 'auth/register';
-  static const String googleAuth = 'auth/google';
-  static const String me = 'auth/me';
+  static const String login       = 'auth/login';
+  static const String register    = 'auth/register';
+  static const String googleAuth  = 'auth/google';
+  static const String me          = 'auth/me';
+  static const String verifyEmail = 'auth/verify-email';
+  static const String resendCode  = 'auth/resend-code';
 
   // Users
   static const String users = 'users';
@@ -53,4 +55,8 @@ class ApiRoutes {
   // Favorites
   static const String favorites = 'favorites';
   static String favoriteItem(String id) => 'favorites/$id';
+
+  // Reviews
+  static const String reviews = 'reviews';
+  static String review(String id) => 'reviews/$id';
 }

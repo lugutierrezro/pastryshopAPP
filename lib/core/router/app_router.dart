@@ -7,10 +7,14 @@ import 'package:pastryshop/domain/entities/entities.dart';
 import 'package:pastryshop/presentation/screens/home/home_screen.dart';
 import 'package:pastryshop/presentation/screens/auth/login_screen.dart';
 import 'package:pastryshop/presentation/screens/auth/register_screen.dart';
+import 'package:pastryshop/presentation/screens/auth/verify_email_screen.dart';
 import 'package:pastryshop/presentation/screens/products/product_detail_screen.dart';
 import 'package:pastryshop/presentation/screens/cart/cart_screen.dart';
 import 'package:pastryshop/presentation/screens/cart/checkout_screen.dart';
+import 'package:pastryshop/presentation/screens/cart/payment_success_screen.dart';
 import 'package:pastryshop/presentation/screens/orders/custom_order_screen.dart';
+import 'package:pastryshop/presentation/screens/orders/order_tracking_screen.dart';
+import 'package:pastryshop/presentation/screens/contact/contact_screen.dart';
 import 'package:pastryshop/presentation/screens/orders/order_history_screen.dart';
 import 'package:pastryshop/presentation/screens/orders/order_detail_screen.dart';
 import 'package:pastryshop/presentation/screens/profile/profile_screen.dart';
@@ -83,12 +87,22 @@ class AppRouter {
           );
         },
       ),
+      GoRoute(
+        path: '/verify-email',
+        builder: (_, state) {
+          final email = state.extra as String? ?? '';
+          return VerifyEmailScreen(email: email);
+        },
+      ),
       GoRoute(path: '/product/:id',  builder: (_, s) => ProductDetailScreen(id: int.parse(s.pathParameters['id']!))),
       GoRoute(path: '/cart',         builder: (_, __) => const CartScreen()),
       GoRoute(path: '/checkout',     builder: (_, __) => const CheckoutScreen()),
+      GoRoute(path: '/payment-success', builder: (_, state) => PaymentSuccessScreen(order: state.extra as OrderEntity?)),
       GoRoute(path: '/custom-order', builder: (_, __) => const CustomOrderScreen()),
       GoRoute(path: '/orders',       builder: (_, __) => const OrderHistoryScreen()),
       GoRoute(path: '/orders/:id',   builder: (_, s) => OrderDetailScreen(id: int.parse(s.pathParameters['id']!))),
+      GoRoute(path: '/orders/:id/tracking', builder: (_, state) => OrderTrackingScreen(order: state.extra as OrderEntity)),
+      GoRoute(path: '/contact',      builder: (_, __) => const ContactScreen()),
       // Admin
       GoRoute(path: '/admin',          builder: (_, __) => const AdminDashboardScreen()),
       GoRoute(path: '/admin/products', builder: (_, __) => const AdminProductsScreen()),

@@ -51,7 +51,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
     final auth = context.read<AuthProvider>();
-    final ok   = await auth.register(
+    final result = await auth.register(
       nombre: _nombreCtrl.text.trim(),
       apellido: _apellidoCtrl.text.trim(),
       email: _emailCtrl.text.trim(),
@@ -60,11 +60,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
       direccion: _dirCtrl.text.trim(),
     );
     if (!mounted) return;
-    if (ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('¡Registro exitoso! Bienvenido/a 🎉'), backgroundColor: AppTheme.success),
-      );
-      context.go('/');
+    if (result != null) {
+      if (result.isEmpty) {
+        // Auto-verificado (poco probable)
+        context.go('/');
+      } else {
+        // Necesita verificar el correo → ir a pantalla OTP
+        context.push('/verify-email', extra: result);
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(auth.error ?? 'Error'), backgroundColor: AppTheme.error),

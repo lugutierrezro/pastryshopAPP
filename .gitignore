@@ -43,3 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Machine-specific config — never commit these (paths differ per OS/machine)
+local.properties
+android/local.properties

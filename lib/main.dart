@@ -13,6 +13,7 @@ import 'presentation/providers/log_provider.dart';
 import 'presentation/providers/notification_provider.dart';
 import 'presentation/providers/role_provider.dart';
 import 'presentation/providers/favorite_provider.dart';
+import 'presentation/providers/review_provider.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
@@ -52,6 +53,7 @@ class PastryShopApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => NotificationProvider()),
         ChangeNotifierProvider(create: (_) => RoleProvider()),
         ChangeNotifierProvider(create: (_) => FavoriteProvider()),
+        ChangeNotifierProvider(create: (_) => ReviewProvider()),
       ],
       child: Consumer<AuthProvider>(
         builder: (_, auth, __) => MaterialApp.router(

@@ -171,10 +171,53 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                             ),
                             const SizedBox(height: 32),
                             
+                            // Tracking button (P-17)
+                            if (order.tipoEntrega == 'domicilio' && order.estado == 'listo') ...[
+                              SizedBox(
+                                width: double.infinity,
+                                height: 50,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    context.push('/orders/${order.id}/tracking', extra: order);
+                                  },
+                                  icon: const Icon(Icons.map_outlined),
+                                  label: const Text('Seguir Repartidor en Mapa', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.primaryDark,
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 32),
+                            ],
+
                             // Stepper (Timeline)
                             const Text('Estado del pedido', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 20),
                             _OrderTimeline(estado: order.estado),
+                            const SizedBox(height: 32),
+
+                            // Customer Information (P-15)
+                            const Text('Datos del Cliente', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade50,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.grey.shade200),
+                              ),
+                              child: Column(
+                                children: [
+                                  _buildInfoRow(Icons.person_outline, 'Nombre:', order.cliente ?? 'No especificado'),
+                                  const Divider(height: 20),
+                                  _buildInfoRow(Icons.email_outlined, 'Correo:', order.email ?? 'No especificado'),
+                                  const Divider(height: 20),
+                                  _buildInfoRow(Icons.phone_outlined, 'Teléfono:', order.telefono ?? 'No especificado'),
+                                ],
+                              ),
+                            ),
                             const SizedBox(height: 32),
                             
                             const Divider(),
@@ -220,6 +263,21 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 ),
               ],
             ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: AppTheme.primaryDark, size: 20),
+        const SizedBox(width: 12),
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textSecondary)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600), textAlign: TextAlign.right),
+        ),
+      ],
     );
   }
 }

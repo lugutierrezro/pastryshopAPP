@@ -123,24 +123,69 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> register({
+  Future<String?> register({
     required String nombre, required String apellido,
     required String email,  required String password,
     String telefono = '',   String direccion = '',
   }) async {
+    // Returns email string if verification is needed, null on error, empty string on unexpected success
     _loading = true; _error = null; notifyListeners();
     try {
       final res = await ApiService.post(ApiRoutes.register, {
         'nombre': nombre, 'apellido': apellido, 'email': email,
         'password': password, 'telefono': telefono, 'direccion': direccion,
       });
+      if (res['success'] == true && res['requiresVerification'] == true) {
+        // Account created, needs email verification
+        return res['email'] as String? ?? email;
+      }
+      if (res['success'] == true) {
+        // Rare: account created and auto-verified (shouldn't happen in normal flow)
+        if (res['data'] != null) {
+          _token = res['data']['token'];
+          _user  = UserEntity.fromJson(res['data']['user']);
+          await _persist();
+        }
+        return '';
+      }
+      _error = res['message'] ?? 'Error al registrarse';
+      return null;
+    } catch (e) {
+      _error = 'No se pudo conectar al servidor';
+      return null;
+    } finally {
+      _loading = false; notifyListeners();
+    }
+  }
+
+  /// Verifica el código OTP — hace login automático si es correcto.
+  Future<bool> verifyEmail({required String email, required String code}) async {
+    _loading = true; _error = null; notifyListeners();
+    try {
+      final res = await ApiService.post(ApiRoutes.verifyEmail, {'email': email, 'code': code});
       if (res['success'] == true) {
         _token = res['data']['token'];
         _user  = UserEntity.fromJson(res['data']['user']);
         await _persist();
         return true;
       }
-      _error = res['message'] ?? 'Error al registrarse';
+      _error = res['message'] ?? 'Código incorrecto';
+      return false;
+    } catch (e) {
+      _error = 'No se pudo conectar al servidor';
+      return false;
+    } finally {
+      _loading = false; notifyListeners();
+    }
+  }
+
+  /// Solicita reenvío del código OTP.
+  Future<bool> resendCode({required String email}) async {
+    _loading = true; _error = null; notifyListeners();
+    try {
+      final res = await ApiService.post(ApiRoutes.resendCode, {'email': email});
+      if (res['success'] == true) return true;
+      _error = res['message'] ?? 'Error al reenviar';
       return false;
     } catch (e) {
       _error = 'No se pudo conectar al servidor';
