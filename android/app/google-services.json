@@ -12,7 +12,12 @@
           "package_name": "com.pastryshop.pastryshop"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "579240241601-pfb3ct8cbc00rgg6sg2875pminu2euj1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyARQun7GuUYb3V9n-luv7-JrXR5kIWOh_s"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "579240241601-pfb3ct8cbc00rgg6sg2875pminu2euj1.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

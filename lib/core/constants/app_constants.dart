@@ -11,7 +11,7 @@ class AppConstants {
 
   // ---- Google Sign-In ----
   // Coloca tu "Web Client ID" (Client ID de tipo 3 de Firebase/Google Cloud Console) aquí:
-  static const String? googleServerClientId = '989250255492-ntij8tr004o3dd767cmm2ff97uc2st3b.apps.googleusercontent.com';
+  static const String? googleServerClientId = '579240241601-pfb3ct8cbc00rgg6sg2875pminu2euj1.apps.googleusercontent.com';
 
   // ---- Storage keys ----
   static const String tokenKey    = 'auth_token';
