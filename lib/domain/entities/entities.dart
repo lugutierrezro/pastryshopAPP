@@ -1,6 +1,7 @@
 // ============================================================
 //  Domain Entities
 // ============================================================
+import 'dart:convert';
 
 class UserEntity {
   final int id;
@@ -93,6 +94,7 @@ class ProductEntity {
   final String categoria;
   final bool activo;
   final List<Map<String, dynamic>> adicionales;
+  final List<String> imagenesUrl;
 
   const ProductEntity({
     required this.id, required this.categoryId, required this.nombre,
@@ -100,17 +102,57 @@ class ProductEntity {
     required this.imagenUrl, required this.destacado, required this.categoria,
     this.activo = true,
     this.adicionales = const [],
+    this.imagenesUrl = const [],
   });
 
-  factory ProductEntity.fromJson(Map<String, dynamic> j) => ProductEntity(
-    id: j['id'] ?? 0, categoryId: j['category_id'] ?? 0,
-    nombre: j['nombre'] ?? '', descripcion: j['descripcion'] ?? '',
-    precio: (j['precio'] ?? 0).toDouble(), stock: j['stock'] ?? 0,
-    imagenUrl: j['imagen_url'] ?? '', destacado: j['destacado'] == true || j['destacado'] == 1,
-    categoria: j['categoria'] ?? '',
-    activo: j['activo'] == true || j['activo'] == 1,
-    adicionales: (j['adicionales'] as List?)?.map((e) => e as Map<String, dynamic>).toList() ?? [],
-  );
+  List<String> get allImages => imagenesUrl.isNotEmpty ? imagenesUrl : [imagenUrl];
+
+  factory ProductEntity.fromJson(Map<String, dynamic> j) {
+    List<Map<String, dynamic>> parsedAdicionales = [];
+    final rawAdicionales = j['adicionales'];
+    if (rawAdicionales != null) {
+      if (rawAdicionales is List) {
+        parsedAdicionales = rawAdicionales.map((e) => Map<String, dynamic>.from(e)).toList();
+      } else if (rawAdicionales is String && rawAdicionales.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(rawAdicionales);
+          if (decoded is List) {
+            parsedAdicionales = decoded.map((e) => Map<String, dynamic>.from(e)).toList();
+          }
+        } catch (_) {}
+      }
+    }
+
+    List<String> parsedImagenes = [];
+    final rawImagenes = j['imagenes_url'];
+    if (rawImagenes != null) {
+      if (rawImagenes is List) {
+        parsedImagenes = List<String>.from(rawImagenes);
+      } else if (rawImagenes is String && rawImagenes.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(rawImagenes);
+          if (decoded is List) {
+            parsedImagenes = List<String>.from(decoded);
+          }
+        } catch (_) {}
+      }
+    }
+
+    return ProductEntity(
+      id: j['id'] ?? 0,
+      categoryId: j['category_id'] ?? 0,
+      nombre: j['nombre'] ?? '',
+      descripcion: j['descripcion'] ?? '',
+      precio: (j['precio'] ?? 0).toDouble(),
+      stock: j['stock'] ?? 0,
+      imagenUrl: j['imagen_url'] ?? '',
+      destacado: j['destacado'] == true || j['destacado'] == 1,
+      categoria: j['categoria'] ?? '',
+      activo: j['activo'] == true || j['activo'] == 1,
+      adicionales: parsedAdicionales,
+      imagenesUrl: parsedImagenes,
+    );
+  }
 }
 
 // ---- Cart Item ----
@@ -131,15 +173,34 @@ class CartItemEntity {
     required this.subtotal, required this.stock, this.opcionesPersonalizadas,
   });
 
-  factory CartItemEntity.fromJson(Map<String, dynamic> j) => CartItemEntity(
-    id: j['id'] ?? 0, productId: j['product_id'] ?? 0,
-    nombre: j['nombre'] ?? '', precio: (j['precio'] ?? 0).toDouble(),
-    imagenUrl: j['imagen_url'] ?? '', cantidad: j['cantidad'] ?? 1,
-    subtotal: (j['subtotal'] ?? 0).toDouble(), stock: j['stock'] ?? 0,
-    opcionesPersonalizadas: j['opciones_personalizadas'] != null 
-        ? (j['opciones_personalizadas'] is String ? null /* wait, usually handled in backend */ : j['opciones_personalizadas']) 
-        : null,
-  );
+  factory CartItemEntity.fromJson(Map<String, dynamic> j) {
+    Map<String, dynamic>? parsedOpciones;
+    final rawOpciones = j['opciones_personalizadas'];
+    if (rawOpciones != null) {
+      if (rawOpciones is Map<String, dynamic>) {
+        parsedOpciones = rawOpciones;
+      } else if (rawOpciones is String && rawOpciones.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(rawOpciones);
+          if (decoded is Map<String, dynamic>) {
+            parsedOpciones = decoded;
+          }
+        } catch (_) {}
+      }
+    }
+
+    return CartItemEntity(
+      id: j['id'] ?? 0,
+      productId: j['product_id'] ?? 0,
+      nombre: j['nombre'] ?? '',
+      precio: (j['precio'] ?? 0).toDouble(),
+      imagenUrl: j['imagen_url'] ?? '',
+      cantidad: j['cantidad'] ?? 1,
+      subtotal: (j['subtotal'] ?? 0).toDouble(),
+      stock: j['stock'] ?? 0,
+      opcionesPersonalizadas: parsedOpciones,
+    );
+  }
 }
 
 // ---- Order ----
@@ -197,12 +258,32 @@ class OrderItemEntity {
     this.opcionesPersonalizadas,
   });
 
-  factory OrderItemEntity.fromJson(Map<String, dynamic> j) => OrderItemEntity(
-    id: j['id'] ?? 0, producto: j['producto'] ?? '',
-    cantidad: j['cantidad'] ?? 1, precioUnit: (j['precio_unit'] ?? 0).toDouble(),
-    subtotal: (j['subtotal'] ?? 0).toDouble(), imagenUrl: j['imagen_url'] ?? '',
-    opcionesPersonalizadas: j['opciones_personalizadas'],
-  );
+  factory OrderItemEntity.fromJson(Map<String, dynamic> j) {
+    Map<String, dynamic>? parsedOpciones;
+    final rawOpciones = j['opciones_personalizadas'];
+    if (rawOpciones != null) {
+      if (rawOpciones is Map<String, dynamic>) {
+        parsedOpciones = rawOpciones;
+      } else if (rawOpciones is String && rawOpciones.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(rawOpciones);
+          if (decoded is Map<String, dynamic>) {
+            parsedOpciones = decoded;
+          }
+        } catch (_) {}
+      }
+    }
+
+    return OrderItemEntity(
+      id: j['id'] ?? 0,
+      producto: j['producto'] ?? '',
+      cantidad: j['cantidad'] ?? 1,
+      precioUnit: (j['precio_unit'] ?? 0).toDouble(),
+      subtotal: (j['subtotal'] ?? 0).toDouble(),
+      imagenUrl: j['imagen_url'] ?? '',
+      opcionesPersonalizadas: parsedOpciones,
+    );
+  }
 }
 
 class OrderStatusHistoryEntity {

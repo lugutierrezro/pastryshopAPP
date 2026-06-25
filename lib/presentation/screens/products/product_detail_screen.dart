@@ -21,6 +21,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   int _cantidad = 1;
   final _notesCtrl = TextEditingController();
   final Set<int> _selectedAdicionales = {};
+  int _currentImageIndex = 0;
 
   @override
   void initState() {
@@ -39,7 +40,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   void _addToCart(product) {
     Map<String, dynamic>? options = {};
     if (_notesCtrl.text.trim().isNotEmpty) {
-      options['notas'] = _notesCtrl.text.trim();
+      options['notes'] = _notesCtrl.text.trim();
     }
     if (_selectedAdicionales.isNotEmpty) {
       options['adicionales'] = _selectedAdicionales.map((idx) => product.adicionales[idx]).toList();
@@ -54,6 +55,65 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
     ));
     context.pop();
+  }
+
+  void _showFullScreenGallery(BuildContext context, List<String> images, int initialIndex) {
+    int localIndex = initialIndex;
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setStateDialog) => Dialog.fullscreen(
+          backgroundColor: Colors.black87,
+          child: Stack(
+            children: [
+              Center(
+                child: PageView.builder(
+                  itemCount: images.length,
+                  controller: PageController(initialPage: initialIndex),
+                  onPageChanged: (idx) {
+                    setStateDialog(() {
+                      localIndex = idx;
+                    });
+                  },
+                  itemBuilder: (context, index) {
+                    return InteractiveViewer(
+                      panEnabled: true,
+                      minScale: 1,
+                      maxScale: 4,
+                      child: Image.network(images[index], fit: BoxFit.contain),
+                    );
+                  },
+                ),
+              ),
+              Positioned(
+                top: 40, left: 20,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black45,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${localIndex + 1} / ${images.length}',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 40, right: 20,
+                child: CircleAvatar(
+                  backgroundColor: Colors.black45,
+                  child: IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -104,44 +164,63 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       ),
       body: Stack(
         children: [
-          // ---- Hero Image Background ----
+          // ---- Hero Image Gallery ----
           Positioned(
             top: 0, left: 0, right: 0,
             height: MediaQuery.of(context).size.height * 0.55,
-            child: GestureDetector(
-              onTap: () {
-                showDialog(
-                  context: context,
-                  builder: (_) => Dialog.fullscreen(
-                    backgroundColor: Colors.black87,
-                    child: Stack(
-                      children: [
-                        Center(
-                          child: InteractiveViewer(
-                            panEnabled: true,
-                            minScale: 1,
-                            maxScale: 4,
-                            child: Image.network(p.imagenUrl, fit: BoxFit.contain),
-                          ),
-                        ),
-                        Positioned(
-                          top: 40, right: 20,
-                          child: IconButton(
-                            icon: const Icon(Icons.close, color: Colors.white, size: 30),
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                        ),
-                      ],
+            child: p.allImages.length <= 1
+                ? GestureDetector(
+                    onTap: () => _showFullScreenGallery(context, p.allImages, 0),
+                    child: Image.network(
+                      p.imagenUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(color: AppTheme.secondary),
                     ),
+                  )
+                : Stack(
+                    children: [
+                      PageView.builder(
+                        itemCount: p.allImages.length,
+                        onPageChanged: (index) {
+                          setState(() {
+                            _currentImageIndex = index;
+                          });
+                        },
+                        itemBuilder: (context, index) {
+                          return GestureDetector(
+                            onTap: () => _showFullScreenGallery(context, p.allImages, index),
+                            child: Image.network(
+                              p.allImages[index],
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(color: AppTheme.secondary),
+                            ),
+                          );
+                        },
+                      ),
+                      Positioned(
+                        bottom: 40,
+                        left: 0,
+                        right: 0,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(
+                            p.allImages.length,
+                            (index) => Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              width: _currentImageIndex == index ? 12 : 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: _currentImageIndex == index
+                                    ? AppTheme.primaryDark
+                                    : Colors.white70,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                );
-              },
-              child: Image.network(
-                p.imagenUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(color: AppTheme.secondary),
-              ),
-            ),
           ),
           
           // ---- Bottom Sheet Content ----

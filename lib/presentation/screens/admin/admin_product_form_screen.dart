@@ -30,9 +30,8 @@ class _AdminProductFormScreenState extends State<AdminProductFormScreen> {
   bool _saving = false;
   
   // Image Upload State
-  String? _currentImageUrl;
-  Uint8List? _selectedImageBytes;
-  String? _selectedImageName;
+  List<String> _currentImagesUrl = [];
+  List<Map<String, dynamic>> _newImages = []; // { 'bytes': Uint8List, 'name': String }
   final ImagePicker _picker = ImagePicker();
 
   List<Map<String, dynamic>> _adicionales = [];
@@ -45,9 +44,15 @@ class _AdminProductFormScreenState extends State<AdminProductFormScreen> {
     _descCtrl  = TextEditingController(text: p?.descripcion ?? '');
     _priceCtrl = TextEditingController(text: p != null ? p.precio.toString() : '');
     _stockCtrl = TextEditingController(text: p != null ? p.stock.toString() : '');
-    _currentImageUrl = p?.imagenUrl;
     _destacado = p?.destacado ?? false;
     _selectedCategory = p?.categoryId ?? 1;
+    
+    if (p != null) {
+      _currentImagesUrl = List<String>.from(p.imagenesUrl);
+      if (_currentImagesUrl.isEmpty && p.imagenUrl.isNotEmpty) {
+        _currentImagesUrl.add(p.imagenUrl);
+      }
+    }
     
     if (p != null && p.adicionales.isNotEmpty) {
       // Create a deep copy to avoid modifying the entity directly before saving
@@ -70,41 +75,46 @@ class _AdminProductFormScreenState extends State<AdminProductFormScreen> {
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      final bytes = await image.readAsBytes();
-      setState(() {
-        _selectedImageBytes = bytes;
-        _selectedImageName = image.name;
-        _currentImageUrl = null; // Clear existing url preview
-      });
+  Future<void> _pickImages() async {
+    final List<XFile> images = await _picker.pickMultiImage();
+    if (images.isNotEmpty) {
+      for (var image in images) {
+        final bytes = await image.readAsBytes();
+        setState(() {
+          _newImages.add({
+            'bytes': bytes,
+            'name': image.name,
+          });
+        });
+      }
     }
   }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_currentImageUrl == null && _selectedImageBytes == null) {
-      ToastUtils.showError('Debes subir una imagen para el producto');
+    if (_currentImagesUrl.isEmpty && _newImages.isEmpty) {
+      ToastUtils.showError('Debes subir al menos una imagen para el producto');
       return;
     }
 
     setState(() => _saving = true);
     final pp = context.read<ProductProvider>();
 
-    String finalImageUrl = _currentImageUrl ?? '';
+    List<String> uploadedUrls = [];
 
-    // Upload new image if selected
-    if (_selectedImageBytes != null && _selectedImageName != null) {
-      final url = await pp.uploadImage(_selectedImageName!, _selectedImageBytes!.toList());
+    // Upload new images
+    for (var img in _newImages) {
+      final url = await pp.uploadImage(img['name'], (img['bytes'] as Uint8List).toList());
       if (url != null) {
-        finalImageUrl = url;
+        uploadedUrls.add(url);
       } else {
         setState(() => _saving = false);
-        ToastUtils.showError('Error al subir la imagen al servidor');
+        ToastUtils.showError('Error al subir una de las imágenes al servidor');
         return;
       }
     }
+
+    final allImages = [..._currentImagesUrl, ...uploadedUrls];
 
     final data = {
       'nombre': _nameCtrl.text.trim(),
@@ -112,7 +122,8 @@ class _AdminProductFormScreenState extends State<AdminProductFormScreen> {
       'precio': double.tryParse(_priceCtrl.text) ?? 0.0,
       'stock': int.tryParse(_stockCtrl.text) ?? 0,
       'category_id': _selectedCategory,
-      'imagen_url': finalImageUrl,
+      'imagen_url': allImages.isNotEmpty ? allImages.first : '',
+      'imagenes_url': allImages,
       'destacado': _destacado,
       'activo': true,
       'adicionales': _adicionales.where((a) => a['nombre'] != null && a['nombre'].toString().trim().isNotEmpty).toList(),
@@ -166,39 +177,109 @@ class _AdminProductFormScreenState extends State<AdminProductFormScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Image Picker Section
-              Center(
-                child: GestureDetector(
-                  onTap: _pickImage,
-                  child: Container(
-                    height: 220,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: Colors.grey.shade300, width: 2, style: BorderStyle.solid),
-                      boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 5))],
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: _selectedImageBytes != null
-                        ? Image.memory(_selectedImageBytes!, fit: BoxFit.cover)
-                        : _currentImageUrl != null && _currentImageUrl!.isNotEmpty
-                            ? CachedNetworkImage(
-                                imageUrl: _currentImageUrl!,
-                                fit: BoxFit.cover,
-                                placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
-                                errorWidget: (context, url, error) => const Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
-                              )
-                            : Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.cloud_upload_outlined, size: 60, color: AppTheme.adminPrimary.withOpacity(0.5)),
-                                  const SizedBox(height: 12),
-                                  const Text('Toca para subir una imagen', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-                                  const SizedBox(height: 4),
-                                  Text('Formatos: JPG, PNG, WEBP', style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
-                                ],
+              // Image Gallery Section
+              const Text('Galería de Imágenes', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.adminPrimary)),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 120,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    // Existing images
+                    ..._currentImagesUrl.asMap().entries.map((e) {
+                      final idx = e.key;
+                      final url = e.value;
+                      return Stack(
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.only(right: 12, top: 8),
+                            width: 100,
+                            height: 100,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey.shade300),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: CachedNetworkImage(
+                              imageUrl: url,
+                              fit: BoxFit.cover,
+                              placeholder: (_, __) => const Center(child: CircularProgressIndicator()),
+                              errorWidget: (_, __, ___) => const Icon(Icons.broken_image),
+                            ),
+                          ),
+                          Positioned(
+                            top: 0, right: 4,
+                            child: CircleAvatar(
+                              radius: 12,
+                              backgroundColor: Colors.red,
+                              child: IconButton(
+                                padding: EdgeInsets.zero,
+                                icon: const Icon(Icons.close, size: 14, color: Colors.white),
+                                onPressed: () => setState(() => _currentImagesUrl.removeAt(idx)),
                               ),
-                  ),
+                            ),
+                          )
+                        ],
+                      );
+                    }),
+                    // New images
+                    ..._newImages.asMap().entries.map((e) {
+                      final idx = e.key;
+                      final img = e.value;
+                      return Stack(
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.only(right: 12, top: 8),
+                            width: 100,
+                            height: 100,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppTheme.accent.withOpacity(0.5), width: 2),
+                            ),
+                            clipBehavior: Clip.antiAlias,
+                            child: Image.memory(
+                              img['bytes'],
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          Positioned(
+                            top: 0, right: 4,
+                            child: CircleAvatar(
+                              radius: 12,
+                              backgroundColor: Colors.red,
+                              child: IconButton(
+                                padding: EdgeInsets.zero,
+                                icon: const Icon(Icons.close, size: 14, color: Colors.white),
+                                onPressed: () => setState(() => _newImages.removeAt(idx)),
+                              ),
+                            ),
+                          )
+                        ],
+                      );
+                    }),
+                    // Add Button
+                    GestureDetector(
+                      onTap: _pickImages,
+                      child: Container(
+                        margin: const EdgeInsets.only(right: 12, top: 8),
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade300, style: BorderStyle.solid),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.add_a_photo_outlined, color: AppTheme.adminPrimary.withOpacity(0.6)),
+                            const SizedBox(height: 4),
+                            const Text('Agregar', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 30),
